@@ -170,6 +170,31 @@
   .foot{margin-top:46px;padding-top:20px;border-top:1px solid var(--hairline);font-size:12px;color:var(--muted)}
   .foot p{margin:0 0 6px}
 
+  /* executive finance layer */
+  .exec-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  .exec-kpi{background:linear-gradient(135deg,var(--surface),var(--surface-2));border:1px solid var(--hairline);border-radius:14px;padding:17px 18px;box-shadow:var(--shadow)}
+  .exec-kpi .v{font-size:27px;font-weight:720;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.05}
+  .exec-kpi .l{font-size:12px;color:var(--muted);margin-top:5px}
+  .exec-kpi .d{font-size:11.5px;color:var(--ink-2);margin-top:7px}
+  .exec-grid{display:grid;grid-template-columns:1.25fr .75fr;gap:16px}
+  .action-list{display:flex;flex-direction:column}
+  .action-row{display:grid;grid-template-columns:26px 1fr auto;gap:9px;padding:10px 2px;border-bottom:1px solid var(--hairline-2);align-items:start}
+  .action-row .n{color:var(--muted);font-size:11px}
+  .action-row .hn{font-size:13px;font-weight:700}
+  .action-row .why{font-size:11px;color:var(--ink-2);margin-top:2px}
+  .action-row .score{font-size:12px;color:var(--crit-ink);font-weight:700}
+  .fin-table{width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums}
+  .fin-table th,.fin-table td{padding:8px 7px;border-bottom:1px solid var(--hairline-2);text-align:right;white-space:nowrap}
+  .fin-table th{color:var(--muted);font-weight:600}
+  .fin-table th:first-child,.fin-table td:first-child{text-align:left;white-space:normal}
+  .neg{color:var(--crit-ink)} .warn-t{color:var(--warn-ink)} .good-t{color:var(--good-ink)}
+  .cost-stack{height:24px;display:flex;border-radius:6px;overflow:hidden;background:var(--surface-2);margin:13px 0}
+  .cost-stack span{display:block;height:100%}
+  .cost-legend{display:grid;grid-template-columns:1fr 1fr;gap:7px 14px;font-size:11.5px;color:var(--ink-2)}
+  .cost-legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px}
+  @media(max-width:980px){.exec-strip{grid-template-columns:repeat(2,1fr)}.exec-grid{grid-template-columns:1fr}}
+  @media(max-width:560px){.exec-strip{grid-template-columns:1fr}}
+
   @media (max-width:980px){.gkpi{grid-template-columns:repeat(2,1fr)}.hgrid{grid-template-columns:repeat(2,1fr)}.mkpi{grid-template-columns:repeat(3,1fr)}}
   @media (max-width:680px){.hgrid{grid-template-columns:1fr}.two-col,.mrow2{grid-template-columns:1fr}.rrow{grid-template-columns:150px 1fr 92px}h1{font-size:23px}}
 </style>
@@ -186,6 +211,39 @@
   <section>
     <div class="sec-head"><h2>全社サマリー</h2><span class="h-note">通常稼働ホテルの合算（立ち上げ中・データ未整備を除く）</span></div>
     <div class="gkpi" id="gkpi"></div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>経営サマリー</h2><span class="h-note">7月速報・財務データのある稼働ホテル</span></div>
+    <div class="exec-strip" id="execKpi"></div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>財務・原価レビュー</h2><span class="h-note">2〜7月の継続18ホテル／7月は集計途中</span></div>
+    <div class="exec-grid">
+      <div class="card">
+        <p class="card-title">売上・純利益の月次推移</p>
+        <p class="card-sub">棒＝売上、線＝純利益。同じ18ホテルの比較</p>
+        <div id="financeTrend"></div>
+      </div>
+      <div class="card">
+        <p class="card-title">7月原価構造</p>
+        <p class="card-sub">改善余地の大きい費目を特定</p>
+        <div id="costStructure"></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>経営アクション</h2><span class="h-note">赤字・利益率目標・変動費・品質・データ整備を優先度順に判定</span></div>
+    <div class="exec-grid">
+      <div class="card"><div class="action-list" id="actionList"></div></div>
+      <div class="card">
+        <p class="card-title">ホテル別 財務レビュー</p>
+        <p class="card-sub">利益率目標差が大きい順</p>
+        <div style="overflow-x:auto"><table class="fin-table"><thead><tr><th>ホテル</th><th>純利益</th><th>利益率</th><th>目標差</th><th>変動費率</th></tr></thead><tbody id="financeTable"></tbody></table></div>
+      </div>
+    </div>
   </section>
 
   <section>
@@ -249,6 +307,38 @@
 <script>
 const DATA={"fiscalYear":"R8","asOf":"2026-07（7月は集計途中）","hotels":[{"name":"京成リッチモンドホテル東京錦糸町","pxx":"P1","r8":{"cleans":25452,"claims":34,"rate":0.134,"kuchiN":14,"kuchiRate":2.88,"r7rate":0.131},"months":["2月","3月","4月","5月","6月","7月"],"mCleans":[4408,4976,4688,4883,4195,2302],"mClaims":[7,5,5,8,5,4],"mRate":[0.159,0.1,0.107,0.164,0.119,0.174],"mKuchi":[1,2,2,6,3,0],"claimTypes":[["セット漏れ",13],["残置",6],["清掃不備",5],["その他",4],["髪の毛",2],["ドア閉め忘れ",1],["巻き込み",1],["手配ミス",1],["破損",1]],"kuchiTypes":[["ホコリ",6],["臭い",5],["残置",1],["汚れ",1],["その他",1]],"maids":[["メイドA",4],["メイドB",4],["メイドC",3],["メイドD",3],["メイドE",3],["メイドF",2]],"checkers":[["チェッカーA",7],["チェッカーB",4],["チェッカーC",4],["チェッカーD",3],["チェッカーE",3],["チェッカーF",2]],"sheetFound":true,"status":"active"},{"name":"第一イン池袋","pxx":"P1","r8":{"cleans":16877,"claims":19,"rate":0.113,"kuchiN":9,"kuchiRate":2.25,"r7rate":0.157},"months":["2月","3月","4月","5月","6月","7月"],"mCleans":[2966,3188,3254,2950,3052,1467],"mClaims":[2,2,3,5,4,3],"mRate":[0.067,0.063,0.092,0.169,0.131,0.204],"mKuchi":[0,1,1,2,5,0],"claimTypes":[["汚れ",6],["手配ミス",4],["セット漏れ",3],["残置",2],["その他",1],["巻き込み",1],["誤入室",1],["髪の毛",1]],"kuchiTypes":[["汚れ",4],["臭い",3],["清掃不備",1],["ホコリ",1]],"maids":[["メイドA",5],["メイドB",3],["メイドC",2],["メイドD",2],["メイドE",1],["メイドF",1]],"checkers":[["チェッカーA",5],["チェッカーB",5],["チェッカーC",2],["チェッカーD",1],["チェッカーE",1]],"sheetFound":true,"status":"active"},{"name":"ダイワロイネットホテル東京大崎","pxx":"P1","r8":{"cleans":20746,"claims":22,"rate":0.106,"kuchiN":9,"kuchiRate":1.57,"r7rate":0.266},"months":["2月","3月","4月","5月","6月"],"mCleans":[4656,4936,4808,3436,2910],"mClaims":[5,6,10,1,0],"mRate":[0.107,0.122,0.208,0.029,0],"mKuchi":[0,1,1,2,5],"claimTypes":[["セット漏れ",12],["残置",8],["未清掃",1],["私物破棄",1]],"kuchiTypes":[["汚れ",4],["臭い",3],["清掃不備",1],["ホコリ",1]],"maids":[["メイドA",4],["メイドB",4],["メイドC",4],["メイドD",3],["メイドE",2],["メイドF",2]],"checkers":[["チェッカーA",9],["チェッカーB",5],["チェッカーC",4],["チェッカーD",4],["チェッカーE",3]],"sheetFound":true,"status":"active"},{"name":"ハートンホテル東品川","pxx":"P1","r8":{"cleans":63309,"claims":54,"rate":0.085,"kuchiN":31,"kuchiRate":3.13,"r7rate":0.067},"months":["2月","3月","4月","5月","6月","7月"],"mCleans":[10539,12673,12455,11710,10550,5382],"mClaims":[9,8,8,13,12,4],"mRate":[0.085,0.063,0.064,0.111,0.114,0.074],"mKuchi":[3,4,8,9,7,0],"claimTypes":[["残置",15],["清掃不備",13],["セット漏れ",12],["髪の毛",5],["汚れ",3],["その他",2],["ドア閉め忘れ",1],["巻き込み",1],["未清掃",1],["誤入室",1]],"kuchiTypes":[["臭い",17],["髪の毛",5],["清掃不備",4],["カビ",2],["残置",1],["汚れ",1],["その他",1]],"maids":[["メイドA",6],["メイドB",5],["メイドC",3],["メイドD",3],["メイドE",3],["メイドF",3]],"checkers":[["チェッカーA",10],["チェッカーB",7],["チェッカーC",6],["チェッカーD",5],["チェッカーE",5],["チェッカーF",4]],"sheetFound":true,"status":"active"},{"name":"ホテルケヤキゲート東京府中","pxx":"P1","r8":{"cleans":23121,"claims":12,"rate":0.052,"kuchiN":11,"kuchiRate":4.1,"r7rate":0.052},"months":["2月","3月","4月","5月","6月","7月"],"mCleans":[4019,4457,4200,4288,4201,1956],"mClaims":[2,1,4,2,1,2],"mRate":[0.05,0.022,0.095,0.047,0.024,0.102],"mKuchi":[1,3,2,3,2,0],"claimTypes":[["残置",5],["セット漏れ",3],["汚れ",2],["その他",1]],"kuchiTypes":[["清掃不備",5],["臭い",3],["髪の毛",2],["残置",1]],"maids":[["メイドA",2],["メイドB",1],["メイドC",1],["メイドD",1],["メイドE",1],["メイドF",1]],"checkers":[["チェッカーA",5],["チェッカーB",5],["チェッカーC",2],["チェッカーD",1],["チェッカーE",1]],"sheetFound":true,"status":"active"},{"name":"リッチモンドホテル東京目白","pxx":"P1","r8":{"cleans":23083,"claims":4,"rate":0.017,"kuchiN":31,"kuchiRate":7.12,"r7rate":0.066},"months":["2月","3月","4月","5月","6月","7月"],"mCleans":[3966,4452,4271,4254,4052,2088],"mClaims":[0,0,1,1,2,0],"mRate":[0,0,0.023,0.024,0.049,0],"mKuchi":[6,7,8,6,4,0],"claimTypes":[["その他",1],["セット漏れ",1],["残置",1],["清掃不備",1]],"kuchiTypes":[["汚れ",8],["清掃不備",5],["臭い",5],["ホコリ",4],["カビ",4],["その他",3],["髪の毛",1],["手配ミス",1]],"maids":[["メイドA",2],["メイドB",1],["メイドC",1]],"checkers":[["チェッカーA",3],["チェッカーB",1]],"sheetFound":true,"status":"active"},{"name":"チサンホテル浜松町","pxx":"P1","r8":{"cleans":42045,"claims":2,"rate":0.005,"kuchiN":20,"kuchiRate":8.99,"r7rate":0.003},"months":["2月","3月","4月","5月","6月","7月"],"mCleans":[6883,8168,8595,7823,7013,3563],"mClaims":[0,1,0,0,1,0],"mRate":[0,0.012,0,0,0.014,0],"mKuchi":[3,5,2,1,9,0],"claimTypes":[["その他",1],["清掃不備",1]],"kuchiTypes":[["臭い",8],["清掃不備",4],["残置",2],["汚れ",2],["ホコリ",2],["髪の毛",1],["カビ",1]],"maids":[["メイドA",2],["メイドB",2],["メイドC",2],["メイドD",1],["メイドE",1],["メイドF",1]],"checkers":[["チェッカーA",1]],"sheetFound":true,"status":"active"},{"name":"コンフォートスイーツ東京ベイ","pxx":"P2","r8":{"cleans":43922,"claims":37,"rate":0.084,"kuchiN":10,"kuchiRate":1.4,"r7rate":0.112},"months":["2月","3月","4月","5月","6月","7月"],"mCleans":[7366,8204,8482,8650,7567,3653],"mClaims":[6,7,4,10,10,0],"mRate":[0.081,0.085,0.047,0.116,0.132,0],"mKuchi":[3,1,1,4,1,0],"claimTypes":[["汚れ",11],["残置",10],["その他",8],["セット漏れ",2],["手配ミス",2],["巻き込み",1],["清掃不備",1],["破損",1],["髪の毛",1]],"kuchiTypes":[["汚れ",4],["髪の毛",2],["ホコリ",2],["臭い",1],["その他",1]],"maids":[["メイドA",3],["メイドB",2],["メイドC",2],["メイドD",2],["メイドE",2],["メイドF",2]],"checkers":[["チェッカーA",6],["チェッカーB",5],["チェッカーC",4],["チェッカーD",3],["チェッカーE",3],["チェッカーF",3]],"sheetFound":true,"status":"active"},{"name":"コンフォートイン六本木","pxx":"P2","r8":{"cleans":15438,"claims":12,"rate":0.078,"kuchiN":11,"kuchiRate":3.64,"r7rate":0.066},"months":["2月","3月","4月","5月","6月","7月"],"mCleans":[2738,2862,2823,3059,2687,1269],"mClaims":[1,2,2,2,4,1],"mRate":[0.037,0.07,0.071,0.065,0.149,0.079],"mKuchi":[6,3,1,1,0,0],"claimTypes":[["残置",4],["セット漏れ",3],["巻き込み",1],["手配ミス",1],["汚れ",1],["清掃不備",1],["髪の毛",1]],"kuchiTypes":[["臭い",6],["清掃不備",2],["カビ",2],["その他",1]],"maids":[["メイドA",3],["メイドB",3],["メイドC",2],["メイドD",2],["メイドE",1],["メイドF",1]],"checkers":[["チェッカーA",5],["チェッカーB",1],["チェッカーC",1]],"sheetFound":true,"status":"active"},{"name":"コンフォートホテル横浜関内","pxx":"P2","r8":{"cleans":29462,"claims":14,"rate":0.048,"kuchiN":15,"kuchiRate":3.14,"r7rate":0.081},"months":["2月","3月","4月","5月","6月","7月"],"mCleans":[4554,5638,6199,5759,4707,2605],"mClaims":[0,3,4,2,2,3],"mRate":[0,0.053,0.065,0.035,0.042,0.115],"mKuchi":[2,5,1,4,3,0],"claimTypes":[["セット漏れ",5],["汚れ",3],["残置",2],["髪の毛",2],["その他",1],["未清掃",1]],"kuchiTypes":[["臭い",6],["汚れ",4],["清掃不備",2],["髪の毛",1],["カビ",1],["その他",1]],"maids":[["メイドA",3],["メイドB",3],["メイドC",2],["メイドD",2],["メイドE",1],["メイドF",1]],"checkers":[["チェッカーA",2],["チェッカーB",2],["チェッカーC",1],["チェッカーD",1]],"sheetFound":true,"status":"active"},{"name":"コンフォートホテルERA東京東神田","pxx":"P2","r8":{"cleans":25488,"claims":7,"rate":0.027,"kuchiN":16,"kuchiRate":2.99,"r7rate":0.027},"months":["2月","3月","4月","5月","6月","7月"],"mCleans":[4225,4682,4745,5065,4518,2253],"mClaims":[4,1,0,1,1,0],"mRate":[0.095,0.021,0,0.02,0.022,0],"mKuchi":[3,1,4,3,5,0],"claimTypes":[["汚れ",3],["セット漏れ",1],["ドア閉め忘れ",1],["清掃不備",1],["髪の毛",1]],"kuchiTypes":[["臭い",11],["汚れ",2],["髪の毛",1],["清掃不備",1],["その他",1]],"maids":[["メイドA",2],["メイドB",2],["メイドC",1],["メイドD",1],["メイドE",1]],"checkers":[["チェッカーA",4],["チェッカーB",2],["チェッカーC",2]],"sheetFound":true,"status":"active"},{"name":"コンフォートホテル成田","pxx":"P2","r8":{"cleans":20013,"claims":0,"rate":0,"kuchiN":11,"kuchiRate":2.84,"r7rate":0.007},"months":["2月","3月","4月","5月","6月","7月"],"mCleans":[3287,3582,3938,3964,3797,1445],"mClaims":[0,0,0,0,0,0],"mRate":[0,0,0,0,0,0],"mKuchi":[3,2,2,2,2,0],"claimTypes":[],"kuchiTypes":[["臭い",4],["清掃不備",3],["髪の毛",2],["汚れ",1],["ホコリ",1]],"maids":[],"checkers":[],"sheetFound":true,"status":"active"},{"name":"川崎日航ホテル","pxx":"P3","r8":{"cleans":24815,"claims":34,"rate":0.137,"kuchiN":7,"kuchiRate":1.34,"r7rate":0.188},"months":["2月","3月","4月","5月","6月","7月"],"mCleans":[4137,4820,4764,4442,4473,2179],"mClaims":[6,10,8,6,2,2],"mRate":[0.145,0.207,0.168,0.135,0.045,0.092],"mKuchi":[1,1,3,2,0,0],"claimTypes":[["セット漏れ",13],["その他",5],["残置",4],["清掃不備",4],["汚れ",3],["巻き込み",2],["誤入室",2],["髪の毛",1]],"kuchiTypes":[["清掃不備",3],["髪の毛",1],["汚れ",1],["臭い",1],["その他",1]],"maids":[["メイドA",13],["メイドB",7],["メイドC",4],["メイドD",3],["メイドE",3],["メイドF",3]],"checkers":[["チェッカーA",14],["チェッカーB",12],["チェッカーC",10],["チェッカーD",6],["チェッカーE",5],["チェッカーF",3]],"sheetFound":true,"status":"active"},{"name":"アパホテル相模原橋本駅東","pxx":"P3","r8":{"cleans":18123,"claims":20,"rate":0.11,"kuchiN":2,"kuchiRate":1.8,"r7rate":0.037},"months":["2月","3月","4月","5月","6月","7月"],"mCleans":[3118,3458,3378,3385,3131,1653],"mClaims":[2,2,5,6,3,2],"mRate":[0.064,0.058,0.148,0.177,0.096,0.121],"mKuchi":[0,0,1,1,0,0],"claimTypes":[["セット漏れ",7],["残置",6],["手配ミス",2],["未清掃",2],["私物破棄",2],["髪の毛",1]],"kuchiTypes":[["臭い",1],["ホコリ",1]],"maids":[["メイドA",2],["メイドB",2],["メイドC",2],["メイドD",1],["メイドE",1],["メイドF",1]],"checkers":[["チェッカーA",3]],"sheetFound":true,"status":"active"},{"name":"変なホテル東京羽田","pxx":"P3","r8":{"cleans":26839,"claims":24,"rate":0.089,"kuchiN":25,"kuchiRate":2.9,"r7rate":0.371},"months":["2月","3月","4月","5月","6月","7月"],"mCleans":[4825,5308,4853,4838,4599,2416],"mClaims":[1,4,4,8,5,2],"mRate":[0.021,0.075,0.082,0.165,0.109,0.083],"mKuchi":[4,4,6,4,7,0],"claimTypes":[["その他",6],["残置",6],["汚れ",4],["清掃不備",4],["セット漏れ",2],["破損",1],["私物破棄",1]],"kuchiTypes":[["臭い",6],["汚れ",5],["清掃不備",5],["髪の毛",4],["ホコリ",2],["残置",1],["カビ",1],["その他",1]],"maids":[["メイドA",2],["メイドB",2],["メイドC",2],["メイドD",2],["メイドE",2],["メイドF",1]],"checkers":[["チェッカーA",6],["チェッカーB",5],["チェッカーC",5],["チェッカーD",2],["チェッカーE",1],["チェッカーF",1]],"sheetFound":true,"status":"active"},{"name":"ホテルコメント横浜関内","pxx":"P3","r8":{"cleans":14908,"claims":12,"rate":0.08,"kuchiN":4,"kuchiRate":1.1,"r7rate":0.151},"months":["2月","3月","4月","5月","6月","7月"],"mCleans":[2629,2958,2803,2780,2448,1290],"mClaims":[1,4,4,0,3,0],"mRate":[0.038,0.135,0.143,0,0.123,0],"mKuchi":[1,2,1,0,0,0],"claimTypes":[["汚れ",4],["セット漏れ",2],["手配ミス",2],["残置",2],["巻き込み",1],["髪の毛",1]],"kuchiTypes":[["臭い",2],["髪の毛",1],["害虫",1]],"maids":[["メイドA",2],["メイドB",2],["メイドC",2],["メイドD",1],["メイドE",1],["メイドF",1]],"checkers":[["チェッカーA",4],["チェッカーB",3],["チェッカーC",3],["チェッカーD",1],["チェッカーE",1]],"sheetFound":true,"status":"active"},{"name":"アパホテル蒲田駅東","pxx":"P3","r8":{"cleans":35015,"claims":27,"rate":0.077,"kuchiN":6,"kuchiRate":4.49,"r7rate":0.131},"months":["2月","3月","4月","5月","6月","7月"],"mCleans":[5988,6706,6454,6509,6094,3264],"mClaims":[9,3,1,6,7,1],"mRate":[0.15,0.045,0.015,0.092,0.115,0.031],"mKuchi":[2,2,1,0,1,0],"claimTypes":[["セット漏れ",15],["残置",4],["汚れ",2],["髪の毛",2],["その他",1],["手配ミス",1],["私物破棄",1],["誤入室",1]],"kuchiTypes":[["臭い",2],["ホコリ",2],["汚れ",1],["その他",1]],"maids":[["メイドA",4],["メイドB",3],["メイドC",3],["メイドD",3],["メイドE",3],["メイドF",2]],"checkers":[["チェッカーA",3],["チェッカーB",2],["チェッカーC",1]],"sheetFound":true,"status":"active"},{"name":"コンフォートホテル博多","pxx":"P4","r8":{"cleans":36628,"claims":33,"rate":0.09,"kuchiN":40,"kuchiRate":7.42,"r7rate":0.107},"months":["2月","3月","4月","5月","6月","7月"],"mCleans":[6278,7046,6743,6807,6669,3085],"mClaims":[9,5,5,5,5,4],"mRate":[0.143,0.071,0.074,0.073,0.075,0.13],"mKuchi":[11,8,6,3,12,0],"claimTypes":[["汚れ",11],["セット漏れ",7],["残置",4],["その他",3],["手配ミス",2],["清掃不備",2],["髪の毛",2],["ドア閉め忘れ",1],["巻き込み",1]],"kuchiTypes":[["汚れ",12],["ホコリ",8],["清掃不備",7],["臭い",7],["髪の毛",3],["カビ",2],["その他",1]],"maids":[["メイドA",3],["メイドB",3],["メイドC",2],["メイドD",2],["メイドE",2],["メイドF",1]],"checkers":[["チェッカーA",5],["チェッカーB",5],["チェッカーC",4],["チェッカーD",4],["チェッカーE",3],["チェッカーF",2]],"sheetFound":true,"status":"active"},{"name":"スタープラザ池袋","pxx":"P1","r8":{"cleans":0,"claims":0,"rate":null,"kuchiN":2,"kuchiRate":3.14,"r7rate":null},"months":["4月","5月"],"mCleans":[null,null],"mClaims":[0,0],"mRate":[null,null],"mKuchi":[1,1],"claimTypes":[],"kuchiTypes":[["臭い",1],["ホコリ",1]],"maids":[],"checkers":[],"sheetFound":true,"status":"ramp-up"},{"name":"ニュースター池袋","pxx":"P1","r8":{"cleans":129,"claims":0,"rate":0,"kuchiN":8,"kuchiRate":3.14,"r7rate":null},"months":["5月","6月","7月"],"mCleans":[null,null,129],"mClaims":[0,0,0],"mRate":[null,null,0],"mKuchi":[4,4,0],"claimTypes":[],"kuchiTypes":[["臭い",5],["カビ",3]],"maids":[],"checkers":[],"sheetFound":true,"status":"ramp-up"},{"name":"フォーポイント横浜","pxx":"P3","r8":{"cleans":2687,"claims":2,"rate":0.074,"kuchiN":2,"kuchiRate":2.68,"r7rate":null},"months":["5月","6月","7月"],"mCleans":[238,1261,1188],"mClaims":[0,2,0],"mRate":[0,0.159,0],"mKuchi":[1,1,0],"claimTypes":[["セット漏れ",2]],"kuchiTypes":[["髪の毛",1],["清掃不備",1]],"maids":[],"checkers":[["チェッカーA",1],["チェッカーB",1]],"sheetFound":true,"status":"ramp-up"},{"name":"フォーポイント名古屋","pxx":"P5","r8":{"cleans":2752,"claims":1,"rate":0.036,"kuchiN":7,"kuchiRate":2.92,"r7rate":null},"months":["5月","6月","7月"],"mCleans":[17,505,2230],"mClaims":[0,1,0],"mRate":[0,0.198,0],"mKuchi":[2,5,0],"claimTypes":[["残置",1]],"kuchiTypes":[["汚れ",3],["臭い",2],["清掃不備",1],["ホコリ",1]],"maids":[["メイドA",1]],"checkers":[["チェッカーA",2]],"sheetFound":true,"status":"ramp-up"},{"name":"コートホテル新横浜","pxx":"P3","r8":{"cleans":null,"claims":null,"rate":null,"kuchiN":null,"kuchiRate":null,"r7rate":null},"months":[],"mCleans":[],"mClaims":[],"mRate":[],"mKuchi":[],"claimTypes":[],"kuchiTypes":[],"maids":[],"checkers":[],"sheetFound":true,"status":"no-data"}]};
 
+const FINANCE={
+  asOf:"2026-07-16",
+  hotels:[
+    ["アパホテル蒲田駅東","P3",2432603,477129,19.61,65.46,72.55,23.25],
+    ["川崎日航ホテル","P3",3738083,569938,15.25,66.64,77.83,17.43],
+    ["コンフォートホテル横浜関内","P2",2190655,548716,25.05,57.65,57.20,25.45],
+    ["コンフォートホテルERA東京東神田","P2",2028582,563274,27.77,52.68,60.92,29.13],
+    ["コンフォートイン六本木","P2",1283179,298548,23.27,48.01,62.22,16.09],
+    ["コンフォートスイーツ東京ベイ","P2",6380611,1155215,18.11,67.32,67.97,24.93],
+    ["京成リッチモンドホテル東京錦糸町","P1",2350320,661772,28.16,56.27,84.42,31.08],
+    ["フォーポイント横浜","P3",1603361,556919,34.73,56.07,50.77,23.78],
+    ["ダイワロイネットホテル東京大崎","P1",0,-237762,null,null,null,-247.90],
+    ["ホテルコメント横浜関内","P3",2157686,576064,26.70,57.63,72.82,27.56],
+    ["コンフォートホテル博多","P4",2899879,111977,3.86,70.78,69.37,16.94],
+    ["ハートンホテル東品川","P1",5572763,1365680,24.51,60.46,75.28,26.90],
+    ["変なホテル東京羽田","P3",2836940,284017,10.01,65.93,80.53,25.65],
+    ["フォーポイント名古屋","P5",2175674,-259811,-11.94,90.70,59.90,null],
+    ["第一イン池袋","P1",2131492,95693,4.49,72.94,70.36,23.31],
+    ["ホテルケヤキゲート東京府中","P1",2160427,587798,27.21,56.62,74.27,24.89],
+    ["アパホテル相模原橋本駅東","P3",1357999,344782,25.39,60.91,63.99,25.62],
+    ["リッチモンドホテル東京目白","P1",1925857,510199,26.49,56.75,87.26,22.79],
+    ["コンフォートホテル成田","P2",1160960,178073,15.34,54.78,52.91,22.56],
+    ["チサンホテル浜松町","P1",3076501,1255130,40.80,53.51,66.49,41.34],
+    ["ニュースター池袋","P1",234044,-53738,-22.96,6.88,7.06,null],
+    ["スタープラザ池袋","P1",0,0,null,null,null,null]
+  ],
+  trend:[
+    ["2月",96497562,25292366],["3月",108274167,30202410],["4月",104212572,27664237],
+    ["5月",105217470,30321371],["6月",96679180,24884477],["7月",45684537,9346243]
+  ],
+  cost:[["変動費",26135869],["固定費",6002351],["協力会社",2620336],["法定福利",1579742],["経費",282341]]
+};
 const NF=new Intl.NumberFormat("ja-JP");
 const cssv=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const HOTELS=DATA.hotels;
@@ -524,7 +614,80 @@ document.getElementById("foot").innerHTML=
 document.querySelectorAll("#sortSeg button").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll("#sortSeg button").forEach(x=>x.classList.remove("on"));b.classList.add("on");sortKey=b.dataset.k;renderRank();}));
 document.querySelectorAll("#pxxSeg button").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll("#pxxSeg button").forEach(x=>x.classList.remove("on"));b.classList.add("on");pxxFilter=b.dataset.p;renderRank();}));
 
-function renderAll(){renderNotes();renderGKPI();renderRank();renderScatter();renderTypeAgg();renderHGrid();}
+function moneyCompact(v){
+  return new Intl.NumberFormat("ja-JP",{style:"currency",currency:"JPY",notation:"compact",maximumFractionDigits:1}).format(v||0);
+}
+function financeRows(){
+  return FINANCE.hotels.map(function(x){
+    const quality=HOTELS.find(function(h){return h.name===x[0]});
+    const row={name:x[0],pxx:x[1],sales:x[2],profit:x[3],margin:x[4],variable:x[5],occupancy:x[6],target:x[7]};
+    row.qualityRate=quality&&quality.r8?quality.r8.rate:null;
+    row.delta=row.margin!=null&&row.target!=null?row.margin-row.target:null;
+    row.score=0;row.reasons=[];
+    if(row.sales===0){row.score+=4;row.reasons.push("財務・稼働データ要確認")}
+    if(row.profit<0){row.score+=5;row.reasons.push("赤字")}
+    if(row.delta!=null&&row.delta<0){row.score+=Math.min(4,Math.abs(row.delta)/5);row.reasons.push("利益率目標未達 "+row.delta.toFixed(1)+"pt")}
+    if(row.variable!=null&&row.variable>70){row.score+=3;row.reasons.push("変動費率70%超")}
+    if(row.qualityRate!=null&&row.qualityRate>.15){row.score+=3;row.reasons.push("クレーム率基準超")}
+    return row;
+  });
+}
+function renderExecutiveKpi(){
+  const rows=financeRows().filter(function(r){return r.sales>0});
+  const sales=rows.reduce(function(s,r){return s+r.sales},0);
+  const profit=rows.reduce(function(s,r){return s+r.profit},0);
+  const risks=financeRows().filter(function(r){return r.score>=3}).length;
+  const html=[
+    ["売上",moneyCompact(sales),"稼働データのある20ホテル"],
+    ["純利益",moneyCompact(profit),"加重利益率 "+(profit/sales*100).toFixed(1)+"%"],
+    ["品質","27件","7月クレーム／清掃45,417室"],
+    ["要対応",risks+"件","赤字・原価・品質・データ"]
+  ].map(function(k){return '<div class="exec-kpi"><div class="v">'+k[1]+'</div><div class="l">'+k[0]+'</div><div class="d">'+k[2]+'</div></div>'}).join("");
+  document.getElementById("execKpi").innerHTML=html;
+}
+function renderFinanceTrend(){
+  const W=660,H=280,L=48,R=18,T=18,B=38,plotW=W-L-R,plotH=H-T-B;
+  const maxSales=Math.max.apply(null,FINANCE.trend.map(function(d){return d[1]}));
+  const maxProfit=Math.max.apply(null,FINANCE.trend.map(function(d){return d[2]}));
+  const step=plotW/FINANCE.trend.length,bw=step*.54;
+  let bars="",labels="",points=[];
+  FINANCE.trend.forEach(function(d,i){
+    const x=L+i*step+(step-bw)/2;
+    const y=T+plotH*(1-d[1]/maxSales);
+    const py=T+plotH*(1-d[2]/maxProfit);
+    bars+='<rect x="'+x+'" y="'+y+'" width="'+bw+'" height="'+(H-B-y)+'" rx="4" fill="'+cssv("--accent-soft")+'"/>';
+    labels+='<text x="'+(x+bw/2)+'" y="'+(H-13)+'" text-anchor="middle" class="axis-label">'+d[0]+'</text>';
+    labels+='<text x="'+(x+bw/2)+'" y="'+(y-6)+'" text-anchor="middle" class="val-label">'+moneyCompact(d[1])+'</text>';
+    points.push([L+i*step+step/2,py,d[2]]);
+  });
+  const path=points.map(function(p,i){return (i?"L":"M")+p[0]+","+p[1]}).join(" ");
+  const dots=points.map(function(p){return '<circle cx="'+p[0]+'" cy="'+p[1]+'" r="4" fill="'+cssv("--warning")+'"/><text x="'+p[0]+'" y="'+(p[1]-9)+'" text-anchor="middle" class="val-label">'+moneyCompact(p[2])+'</text>'}).join("");
+  document.getElementById("financeTrend").innerHTML='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="売上と純利益の月次推移"><line x1="'+L+'" y1="'+(H-B)+'" x2="'+(W-R)+'" y2="'+(H-B)+'" stroke="'+cssv("--axis")+'"/>'+bars+'<path d="'+path+'" fill="none" stroke="'+cssv("--warning")+'" stroke-width="2.5"/>'+dots+labels+'</svg>';
+}
+function renderCostStructure(){
+  const total=FINANCE.cost.reduce(function(s,d){return s+d[1]},0);
+  const colors=["--accent","--warning","--good","--s1","--muted"];
+  const stack=FINANCE.cost.map(function(d,i){return '<span style="width:'+(d[1]/total*100)+'%;background:'+cssv(colors[i])+'"></span>'}).join("");
+  const legend=FINANCE.cost.map(function(d,i){return '<div><i style="background:'+cssv(colors[i])+'"></i>'+d[0]+' <b>'+Math.round(d[1]/total*100)+'%</b></div>'}).join("");
+  document.getElementById("costStructure").innerHTML='<div style="font-size:26px;font-weight:720">'+moneyCompact(total)+'</div><div class="card-sub">総原価</div><div class="cost-stack">'+stack+'</div><div class="cost-legend">'+legend+'</div><p class="card-sub" style="margin-top:15px">変動費と協力会社費で原価の78.6%。利益改善の主要レバーです。</p>';
+}
+function renderActions(){
+  const rows=financeRows().filter(function(r){return r.score>0}).sort(function(a,b){return b.score-a.score}).slice(0,8);
+  document.getElementById("actionList").innerHTML=rows.map(function(r,i){
+    return '<div class="action-row"><span class="n">'+String(i+1).padStart(2,"0")+'</span><div><div class="hn">'+r.name+'</div><div class="why">'+r.reasons.join(" / ")+'</div></div><span class="score">'+r.score.toFixed(1)+'</span></div>';
+  }).join("");
+}
+function renderFinanceTable(){
+  const rows=financeRows().filter(function(r){return r.sales>0}).sort(function(a,b){return (a.delta==null?99:a.delta)-(b.delta==null?99:b.delta)}).slice(0,10);
+  document.getElementById("financeTable").innerHTML=rows.map(function(r){
+    const dc=r.delta==null?"":(r.delta<0?"neg":"good-t");
+    const vc=r.variable!=null&&r.variable>70?"warn-t":"";
+    return '<tr><td>'+r.name+'</td><td class="'+(r.profit<0?"neg":"")+'">'+moneyCompact(r.profit)+'</td><td>'+r.margin.toFixed(1)+'%</td><td class="'+dc+'">'+(r.delta==null?"—":r.delta.toFixed(1)+"pt")+'</td><td class="'+vc+'">'+(r.variable==null?"—":r.variable.toFixed(1)+"%")+'</td></tr>';
+  }).join("");
+}
+function renderExecutive(){renderExecutiveKpi();renderFinanceTrend();renderCostStructure();renderActions();renderFinanceTable()}
+
+function renderAll(){renderNotes();renderGKPI();renderExecutive();renderRank();renderScatter();renderTypeAgg();renderHGrid();}
 renderAll();
 let rt;addEventListener("resize",()=>{clearTimeout(rt);rt=setTimeout(()=>{renderScatter();},160);});
 const mo=new MutationObserver(()=>renderAll());mo.observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
