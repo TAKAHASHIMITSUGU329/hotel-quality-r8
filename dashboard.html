@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<title>R8 客室清掃品質ダッシュボード｜全23ホテル</title>
+<style>
+  :root{
+    color-scheme:light;
+    --paper:#eceee9; --surface:#fdfdfc; --surface-2:#f5f5f2; --surface-3:#efefeb;
+    --ink:#171a1f; --ink-2:#565b64; --muted:#8a8e96;
+    --hairline:rgba(18,20,25,.11); --hairline-2:rgba(18,20,25,.06);
+    --grid:#e4e4de; --axis:#c6c6bf;
+    --accent:#35507a; --accent-2:#4a6ea6; --accent-soft:#e7ecf3;
+    --good:#0f8a3c; --good-ink:#0b6e30; --warning:#c98500; --warn-ink:#9a6600; --critical:#cc3b3b; --crit-ink:#b22c2c;
+    --band-good:rgba(15,138,60,.13); --band-warn:rgba(201,133,0,.14); --band-crit:rgba(204,59,59,.13);
+    --s1:#2a78d6; --shadow:0 1px 2px rgba(18,20,25,.04),0 8px 24px rgba(18,20,25,.06);
+  }
+  @media (prefers-color-scheme:dark){:root:where(:not([data-theme="light"])){
+    color-scheme:dark;
+    --paper:#0c0d0f; --surface:#17191d; --surface-2:#1e2126; --surface-3:#23262c;
+    --ink:#f4f5f4; --ink-2:#b7bbc2; --muted:#83868d;
+    --hairline:rgba(255,255,255,.12); --hairline-2:rgba(255,255,255,.06);
+    --grid:#2a2d32; --axis:#3a3d43;
+    --accent:#7f9dce; --accent-2:#6d8ec5; --accent-soft:#23303f;
+    --good:#34b861; --good-ink:#4cc877; --warning:#e0a021; --warn-ink:#e8b64b; --critical:#e46464; --crit-ink:#ee8080;
+    --band-good:rgba(52,184,97,.15); --band-warn:rgba(224,160,33,.15); --band-crit:rgba(228,100,100,.15);
+    --s1:#4f9bf0; --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 28px rgba(0,0,0,.4);
+  }}
+  :root[data-theme="dark"]{
+    color-scheme:dark;
+    --paper:#0c0d0f;--surface:#17191d;--surface-2:#1e2126;--surface-3:#23262c;
+    --ink:#f4f5f4;--ink-2:#b7bbc2;--muted:#83868d;
+    --hairline:rgba(255,255,255,.12);--hairline-2:rgba(255,255,255,.06);
+    --grid:#2a2d32;--axis:#3a3d43;--accent:#7f9dce;--accent-2:#6d8ec5;--accent-soft:#23303f;
+    --good:#34b861;--good-ink:#4cc877;--warning:#e0a021;--warn-ink:#e8b64b;--critical:#e46464;--crit-ink:#ee8080;
+    --band-good:rgba(52,184,97,.15);--band-warn:rgba(224,160,33,.15);--band-crit:rgba(228,100,100,.15);
+    --s1:#4f9bf0;--shadow:0 1px 2px rgba(0,0,0,.3),0 10px 28px rgba(0,0,0,.4);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic","Meiryo",sans-serif;
+    line-height:1.6;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1240px;margin:0 auto;padding:30px 22px 90px}
+  .eyebrow{font-size:12px;letter-spacing:.15em;text-transform:uppercase;color:var(--accent);font-weight:700;margin:0 0 8px}
+  h1{font-size:28px;line-height:1.22;margin:0 0 10px;letter-spacing:-.015em;text-wrap:balance}
+  .sub{color:var(--ink-2);font-size:14.5px;margin:0;max-width:70ch}
+  .note-strip{margin-top:16px;display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center}
+  .tag{font-size:12px;padding:4px 11px;border-radius:999px;background:var(--surface);border:1px solid var(--hairline);color:var(--ink-2)}
+  .tag strong{color:var(--ink);font-weight:650}
+  .tag.warn{background:var(--band-warn);border-color:transparent;color:var(--ink)}
+
+  section{margin-top:38px}
+  .sec-head{display:flex;align-items:baseline;gap:12px;margin-bottom:15px;flex-wrap:wrap}
+  .sec-head h2{font-size:18px;margin:0;letter-spacing:-.01em}
+  .sec-head .h-note{font-size:12.5px;color:var(--muted)}
+
+  /* global KPI */
+  .gkpi{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  .gk{background:var(--surface);border:1px solid var(--hairline);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
+  .gk .v{font-size:29px;font-weight:720;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.05}
+  .gk .v .u{font-size:15px;font-weight:600;color:var(--ink-2);margin-left:2px}
+  .gk .l{font-size:12px;color:var(--muted);margin-top:5px}
+  .gk .sub2{font-size:11.5px;color:var(--ink-2);margin-top:7px}
+
+  .card{background:var(--surface);border:1px solid var(--hairline);border-radius:16px;padding:22px;box-shadow:var(--shadow)}
+  .card-title{font-size:14.5px;font-weight:700;margin:0 0 3px}
+  .card-sub{font-size:12px;color:var(--muted);margin:0 0 16px}
+
+  /* controls */
+  .controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px}
+  .seg{display:inline-flex;background:var(--surface-2);border:1px solid var(--hairline);border-radius:9px;padding:2px;gap:2px}
+  .seg button{border:0;background:transparent;color:var(--ink-2);font:inherit;font-size:12.5px;padding:5px 11px;border-radius:7px;cursor:pointer;white-space:nowrap}
+  .seg button.on{background:var(--surface);color:var(--ink);font-weight:650;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+  .ctl-label{font-size:12px;color:var(--muted);margin-right:2px}
+
+  /* legend for status */
+  .status-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink-2);margin-top:2px}
+  .status-legend .it{display:inline-flex;align-items:center;gap:5px}
+  .sdot{width:9px;height:9px;border-radius:3px;flex:none}
+
+  /* Ranking */
+  .rank{display:flex;flex-direction:column;gap:6px}
+  .rrow{display:grid;grid-template-columns:210px 1fr 118px;align-items:center;gap:12px;padding:5px 6px;border-radius:8px;cursor:pointer;transition:background .12s}
+  .rrow:hover{background:var(--surface-2)}
+  .rrow .rname{display:flex;align-items:center;gap:8px;font-size:13px;min-width:0}
+  .rrow .rname .pxx{font-size:10.5px;color:var(--muted);border:1px solid var(--hairline);border-radius:5px;padding:0 4px;flex:none}
+  .rrow .rname .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rrow .rtrack{height:20px;background:var(--surface-2);border-radius:5px;position:relative;overflow:hidden}
+  .rrow .rfill{height:100%;border-radius:5px}
+  .rrow .rmeta{text-align:right;font-size:12.5px;font-variant-numeric:tabular-nums;color:var(--ink-2)}
+  .rrow .rmeta b{color:var(--ink);font-weight:700;font-size:14px}
+  .rrow .rmeta .dl{font-size:11px;margin-left:5px}
+  .dl.down{color:var(--good-ink)} .dl.up{color:var(--crit-ink)} .dl.flat{color:var(--muted)}
+
+  /* scatter */
+  .scatter-wrap{position:relative}
+  .scatter-note{font-size:11.5px;color:var(--muted);margin-top:8px;line-height:1.5}
+
+  /* type breakdown */
+  .two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .tbar-row{display:grid;grid-template-columns:88px 1fr 62px;align-items:center;gap:10px;font-size:12.5px;margin-bottom:6px}
+  .tbar-row .tn{color:var(--ink-2)}
+  .tbar-track{height:16px;background:var(--surface-2);border-radius:4px;overflow:hidden}
+  .tbar-fill{height:100%;border-radius:4px}
+  .tbar-val{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink-2)}
+  .tbar-val b{color:var(--ink)}
+
+  /* hotel grid */
+  .hgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .hcard{background:var(--surface);border:1px solid var(--hairline);border-radius:14px;padding:15px 16px 14px;cursor:pointer;transition:transform .12s,box-shadow .12s,border-color .12s;box-shadow:var(--shadow);position:relative;overflow:hidden}
+  .hcard:hover{transform:translateY(-2px);border-color:var(--accent)}
+  .hcard::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--rail,var(--accent))}
+  .hcard .htop{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:11px}
+  .hcard .hname{font-size:13.5px;font-weight:700;line-height:1.3;padding-left:4px}
+  .hcard .hpxx{font-size:10.5px;color:var(--muted);border:1px solid var(--hairline);border-radius:5px;padding:1px 5px;flex:none}
+  .hcard .hmain{display:flex;align-items:flex-end;gap:12px;padding-left:4px}
+  .hcard .hrate{font-size:27px;font-weight:720;line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .hcard .hrate .u{font-size:13px;font-weight:600;color:var(--ink-2)}
+  .hcard .hrate-l{font-size:10.5px;color:var(--muted);margin-bottom:2px}
+  .hcard .hdelta{font-size:11.5px;font-weight:650;margin-bottom:2px}
+  .hcard .hstats{display:flex;gap:12px;margin-top:12px;padding:11px 0 0 4px;border-top:1px solid var(--hairline-2)}
+  .hcard .hstat .sv{font-size:13.5px;font-weight:700;font-variant-numeric:tabular-nums}
+  .hcard .hstat .sl{font-size:10px;color:var(--muted)}
+  .spark{margin-top:12px;padding-left:4px}
+  .badge{font-size:10px;padding:2px 7px;border-radius:999px;font-weight:650;white-space:nowrap}
+  .badge.ramp{background:var(--band-warn);color:var(--warn-ink)}
+  .badge.nodata{background:var(--surface-3);color:var(--muted)}
+
+  /* modal */
+  .backdrop{position:fixed;inset:0;background:rgba(10,12,15,.5);backdrop-filter:blur(3px);z-index:100;opacity:0;pointer-events:none;transition:opacity .18s}
+  .backdrop.open{opacity:1;pointer-events:auto}
+  .modal{position:fixed;z-index:101;left:50%;top:50%;transform:translate(-50%,-48%) scale(.98);width:min(920px,94vw);max-height:90vh;overflow-y:auto;
+    background:var(--surface);border:1px solid var(--hairline);border-radius:18px;box-shadow:0 20px 70px rgba(0,0,0,.4);
+    opacity:0;pointer-events:none;transition:opacity .18s,transform .18s;padding:26px}
+  .modal.open{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1)}
+  .modal-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:6px}
+  .modal-head h3{margin:0;font-size:20px;letter-spacing:-.01em}
+  .modal-head .mx{border:0;background:var(--surface-2);color:var(--ink-2);width:32px;height:32px;border-radius:9px;cursor:pointer;font-size:17px;flex:none}
+  .modal-head .mx:hover{background:var(--surface-3);color:var(--ink)}
+  .mmeta{font-size:12.5px;color:var(--muted);margin-bottom:18px}
+  .mkpi{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:22px}
+  .mkpi .mk{background:var(--surface-2);border-radius:11px;padding:11px 12px}
+  .mkpi .mk .v{font-size:18px;font-weight:720;font-variant-numeric:tabular-nums;line-height:1.1}
+  .mkpi .mk .l{font-size:10.5px;color:var(--muted);margin-top:3px}
+  .msec-t{font-size:12.5px;font-weight:700;margin:0 0 10px;color:var(--ink)}
+  .mrow2{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px}
+  .mrow2-3{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  .legend{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:8px}
+  .legend .item{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--ink-2)}
+  .legend .sw{width:13px;height:4px;border-radius:2px}
+  .mini-rank{display:flex;flex-direction:column;gap:5px}
+  .mini-rank .mr{display:grid;grid-template-columns:1fr 26px;gap:7px;align-items:center;font-size:12px}
+  .mini-rank .mr .mrt{height:14px;background:var(--surface-2);border-radius:4px;overflow:hidden}
+  .mini-rank .mr .mrf{height:100%;border-radius:4px}
+  .mini-rank .mr .mrv{text-align:right;font-variant-numeric:tabular-nums;font-weight:650}
+  .mini-rank .mr .mrn{grid-column:1/3;font-size:11px;color:var(--ink-2);margin-top:-3px}
+
+  svg text{font-family:inherit}
+  .axis-label{fill:var(--muted);font-size:11px}
+  .val-label{fill:var(--ink-2);font-size:11px;font-variant-numeric:tabular-nums}
+
+  .tt{position:fixed;pointer-events:none;z-index:200;opacity:0;transform:translate(-50%,-115%);
+    background:#22262c;color:#f4f5f4;font-size:12px;padding:8px 11px;border-radius:9px;white-space:nowrap;
+    transition:opacity .1s;box-shadow:0 8px 26px rgba(0,0,0,.4);line-height:1.5}
+  .tt b{font-weight:700}
+  .foot{margin-top:46px;padding-top:20px;border-top:1px solid var(--hairline);font-size:12px;color:var(--muted)}
+  .foot p{margin:0 0 6px}
+
+  @media (max-width:980px){.gkpi{grid-template-columns:repeat(2,1fr)}.hgrid{grid-template-columns:repeat(2,1fr)}.mkpi{grid-template-columns:repeat(3,1fr)}}
+  @media (max-width:680px){.hgrid{grid-template-columns:1fr}.two-col,.mrow2{grid-template-columns:1fr}.rrow{grid-template-columns:150px 1fr 92px}h1{font-size:23px}}
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">R8 客室清掃品質 — 全現場ダッシュボード</p>
+    <h1>ホテル別 清掃品質・クレーム分析</h1>
+    <p class="sub">稼働中の全ホテルについて、R8年度（今年）のクレーム率・口コミ（清潔感）指摘を横断比較します。各ホテルカードをクリックすると月次推移・種別内訳・メイド／チェッカー別の詳細が開きます。</p>
+    <div class="note-strip" id="noteStrip"></div>
+    <div class="status-legend" id="statusLegend"></div>
+  </header>
+
+  <section>
+    <div class="sec-head"><h2>全社サマリー</h2><span class="h-note">通常稼働ホテルの合算（立ち上げ中・データ未整備を除く）</span></div>
+    <div class="gkpi" id="gkpi"></div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>クレーム率ランキング</h2><span class="h-note">クリックで詳細。バーの色は水準（緑=良好 / 黄=注意 / 赤=高め）</span></div>
+    <div class="card">
+      <div class="controls">
+        <span class="ctl-label">並び替え</span>
+        <div class="seg" id="sortSeg">
+          <button data-k="rate" class="on">クレーム率</button>
+          <button data-k="kuchiRate">口コミ指摘率</button>
+          <button data-k="claims">クレーム数</button>
+          <button data-k="cleans">清掃数</button>
+        </div>
+        <span class="ctl-label" style="margin-left:8px">区分</span>
+        <div class="seg" id="pxxSeg">
+          <button data-p="all" class="on">全て</button>
+          <button data-p="P1">P1</button><button data-p="P2">P2</button>
+          <button data-p="P3">P3</button><button data-p="P4">P4</button><button data-p="P5">P5</button>
+        </div>
+      </div>
+      <div class="rank" id="rankList"></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>品質マトリクス</h2><span class="h-note">横=クレーム率／縦=口コミ（清潔感）指摘率。両方低い＝右下が理想</span></div>
+    <div class="card scatter-wrap">
+      <div id="scatter"></div>
+      <p class="scatter-note" id="scatterNote"></p>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>指摘種別の全社集計</h2><span class="h-note">通常稼働ホテル合算・件数の多い順</span></div>
+    <div class="two-col">
+      <div class="card">
+        <p class="card-title">クレーム（お客様指摘）種別</p>
+        <p class="card-sub">現場で最も多い作業ミスの型</p>
+        <div id="claimTypeAgg"></div>
+      </div>
+      <div class="card">
+        <p class="card-title">口コミ（清潔感）指摘 種別</p>
+        <p class="card-sub">お客様の口コミに現れた指摘の型</p>
+        <div id="kuchiTypeAgg"></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-head"><h2>ホテル一覧</h2><span class="h-note" id="hgridNote"></span></div>
+    <div class="hgrid" id="hgrid"></div>
+  </section>
+
+  <div class="foot" id="foot"></div>
+</div>
+
+<div class="backdrop" id="backdrop"></div>
+<div class="modal" id="modal" role="dialog" aria-modal="true"></div>
+<div class="tt" id="tt"></div>
+
+<script>
+const DATA={"fiscalYear":"R8","asOf":"2026-07（7月は集計途中）","hotels":[{"name":"京成リッチモンドホテル東京錦糸町","pxx":"P1","r8":{"cleans":25452,"claims":34,"rate":0.134,"kuchiN":14,"kuchiRate":2.88,"r7rate":0.131},"months":["2月","3月","4月","5月","6月","7月"],"mCleans":[4408,4976,4688,4883,4195,2302],"mClaims":[7,5,5,8,5,4],"mRate":[0.159,0.1,0.107,0.164,0.119,0.174],"mKuchi":[1,2,2,6,3,0],"claimTypes":[["セット漏れ",13],["残置",6],["清掃不備",5],["その他",4],["髪の毛",2],["ドア閉め忘れ",1],["巻き込み",1],["手配ミス",1],["破損",1]],"kuchiTypes":[["ホコリ",6],["臭い",5],["残置",1],["汚れ",1],["その他",1]],"maids":[["サンタ",4],["タン",4],["GT",3],["カトリ",3],["メイ",3],["スレスタ",2]],"checkers":[["メイ",7],["エリ",4],["カン",4],["サウド",3],["梅川",3],["シャキラ",2]],"sheetFound":true,"status":"active"},{"name":"第一イン池袋","pxx":"P1","r8":{"cleans":16877,"claims":19,"rate":0.113,"kuchiN":9,"kuchiRate":2.25,"r7rate":0.157},"months":["2月","3月","4月","5月","6月","7月"],"mCleans":[2966,3188,3254,2950,3052,1467],"mClaims":[2,2,3,5,4,3],"mRate":[0.067,0.063,0.092,0.169,0.131,0.204],"mKuchi":[0,1,1,2,5,0],"claimTypes":[["汚れ",6],["手配ミス",4],["セット漏れ",3],["残置",2],["その他",1],["巻き込み",1],["誤入室",1],["髪の毛",1]],"kuchiTypes":[["汚れ",4],["臭い",3],["清掃不備",1],["ホコリ",1]],"maids":[["バンダリ",5],["ラディカ",3],["オニタ",2],["メィ",2],["デビ",1],["ヤム",1]],"checkers":[["ティン",5],["亀井",5],["堀",2],["ナン",1],["小沼",1]],"sheetFound":true,"status":"active"},{"name":"ダイワロイネットホテル東京大崎","pxx":"P1","r8":{"cleans":20746,"claims":22,"rate":0.106,"kuchiN":9,"kuchiRate":1.57,"r7rate":0.266},"months":["2月","3月","4月","5月","6月"],"mCleans":[4656,4936,4808,3436,2910],"mClaims":[5,6,10,1,0],"mRate":[0.107,0.122,0.208,0.029,0],"mKuchi":[0,1,1,2,5],"claimTypes":[["セット漏れ",12],["残置",8],["未清掃",1],["私物破棄",1]],"kuchiTypes":[["汚れ",4],["臭い",3],["清掃不備",1],["ホコリ",1]],"maids":[["アンビカ",4],["クマリ",4],["グルン",4],["ビケ",3],["アニタ",2],["ゾー",2]],"checkers":[["チャン",9],["ユコ",5],["ピョー",4],["結城",4],["國枝",3]],"sheetFound":true,"status":"active"},{"name":"ハートンホテル東品川","pxx":"P1","r8":{"cleans":63309,"claims":54,"rate":0.085,"kuchiN":31,"kuchiRate":3.13,"r7rate":0.067},"months":["2月","3月","4月","5月","6月","7月"],"mCleans":[10539,12673,12455,11710,10550,5382],"mClaims":[9,8,8,13,12,4],"mRate":[0.085,0.063,0.064,0.111,0.114,0.074],"mKuchi":[3,4,8,9,7,0],"claimTypes":[["残置",15],["清掃不備",13],["セット漏れ",12],["髪の毛",5],["汚れ",3],["その他",2],["ドア閉め忘れ",1],["巻き込み",1],["未清掃",1],["誤入室",1]],"kuchiTypes":[["臭い",17],["髪の毛",5],["清掃不備",4],["カビ",2],["残置",1],["汚れ",1],["その他",1]],"maids":[["サンティ",6],["プスカル",5],["アンビカ",3],["サムジャナ",3],["ソバ",3],["モハン",3]],"checkers":[["ラディカ",10],["ラジタ",7],["エマ",6],["チャン",5],["ディパク",5],["ジェ",4]],"sheetFound":true,"status":"active"},{"name":"ホテルケヤキゲート東京府中","pxx":"P1","r8":{"cleans":23121,"claims":12,"rate":0.052,"kuchiN":11,"kuchiRate":4.1,"r7rate":0.052},"months":["2月","3月","4月","5月","6月","7月"],"mCleans":[4019,4457,4200,4288,4201,1956],"mClaims":[2,1,4,2,1,2],"mRate":[0.05,0.022,0.095,0.047,0.024,0.102],"mKuchi":[1,3,2,3,2,0],"claimTypes":[["残置",5],["セット漏れ",3],["汚れ",2],["その他",1]],"kuchiTypes":[["清掃不備",5],["臭い",3],["髪の毛",2],["残置",1]],"maids":[["ディパ",2],["イトウ",1],["ジャクリン",1],["パタク",1],["メヌカ",1],["メリー",1]],"checkers":[["サラ",5],["松田",5],["下田",2],["ニス",1],["大井/髙野",1]],"sheetFound":true,"status":"active"},{"name":"リッチモンドホテル東京目白","pxx":"P1","r8":{"cleans":23083,"claims":4,"rate":0.017,"kuchiN":31,"kuchiRate":7.12,"r7rate":0.066},"months":["2月","3月","4月","5月","6月","7月"],"mCleans":[3966,4452,4271,4254,4052,2088],"mClaims":[0,0,1,1,2,0],"mRate":[0,0,0.023,0.024,0.049,0],"mKuchi":[6,7,8,6,4,0],"claimTypes":[["その他",1],["セット漏れ",1],["残置",1],["清掃不備",1]],"kuchiTypes":[["汚れ",8],["清掃不備",5],["臭い",5],["ホコリ",4],["カビ",4],["その他",3],["髪の毛",1],["手配ミス",1]],"maids":[["サリタ",2],["グルン",1],["スベテイ",1]],"checkers":[["篠原",3],["飯田",1]],"sheetFound":true,"status":"active"},{"name":"チサンホテル浜松町","pxx":"P1","r8":{"cleans":42045,"claims":2,"rate":0.005,"kuchiN":20,"kuchiRate":8.99,"r7rate":0.003},"months":["2月","3月","4月","5月","6月","7月"],"mCleans":[6883,8168,8595,7823,7013,3563],"mClaims":[0,1,0,0,1,0],"mRate":[0,0.012,0,0,0.014,0],"mKuchi":[3,5,2,1,9,0],"claimTypes":[["その他",1],["清掃不備",1]],"kuchiTypes":[["臭い",8],["清掃不備",4],["残置",2],["汚れ",2],["ホコリ",2],["髪の毛",1],["カビ",1]],"maids":[["サミラ",2],["ビナ",2],["ブラトキ",2],["プルザ",1],["ラクシャン",1],["楊",1]],"checkers":[["片山",1]],"sheetFound":true,"status":"active"},{"name":"コンフォートスイーツ東京ベイ","pxx":"P2","r8":{"cleans":43922,"claims":37,"rate":0.084,"kuchiN":10,"kuchiRate":1.4,"r7rate":0.112},"months":["2月","3月","4月","5月","6月","7月"],"mCleans":[7366,8204,8482,8650,7567,3653],"mClaims":[6,7,4,10,10,0],"mRate":[0.081,0.085,0.047,0.116,0.132,0],"mKuchi":[3,1,1,4,1,0],"claimTypes":[["汚れ",11],["残置",10],["その他",8],["セット漏れ",2],["手配ミス",2],["巻き込み",1],["清掃不備",1],["破損",1],["髪の毛",1]],"kuchiTypes":[["汚れ",4],["髪の毛",2],["ホコリ",2],["臭い",1],["その他",1]],"maids":[["プレム",3],["アルジュン",2],["アンザナ",2],["ギリ",2],["ジョティ",2],["スシル",2]],"checkers":[["富田",6],["バンダナ",5],["佐竹",4],["カテル",3],["デビ",3],["マニサ",3]],"sheetFound":true,"status":"active"},{"name":"コンフォートイン六本木","pxx":"P2","r8":{"cleans":15438,"claims":12,"rate":0.078,"kuchiN":11,"kuchiRate":3.64,"r7rate":0.066},"months":["2月","3月","4月","5月","6月","7月"],"mCleans":[2738,2862,2823,3059,2687,1269],"mClaims":[1,2,2,2,4,1],"mRate":[0.037,0.07,0.071,0.065,0.149,0.079],"mKuchi":[6,3,1,1,0,0],"claimTypes":[["残置",4],["セット漏れ",3],["巻き込み",1],["手配ミス",1],["汚れ",1],["清掃不備",1],["髪の毛",1]],"kuchiTypes":[["臭い",6],["清掃不備",2],["カビ",2],["その他",1]],"maids":[["サンギタ",3],["ヤムナ",3],["ソニヤ",2],["ビマ",2],["イサ",1],["ウルミラ",1]],"checkers":[["コウ",5],["ギタ",1],["ギター",1]],"sheetFound":true,"status":"active"},{"name":"コンフォートホテル横浜関内","pxx":"P2","r8":{"cleans":29462,"claims":14,"rate":0.048,"kuchiN":15,"kuchiRate":3.14,"r7rate":0.081},"months":["2月","3月","4月","5月","6月","7月"],"mCleans":[4554,5638,6199,5759,4707,2605],"mClaims":[0,3,4,2,2,3],"mRate":[0,0.053,0.065,0.035,0.042,0.115],"mKuchi":[2,5,1,4,3,0],"claimTypes":[["セット漏れ",5],["汚れ",3],["残置",2],["髪の毛",2],["その他",1],["未清掃",1]],"kuchiTypes":[["臭い",6],["汚れ",4],["清掃不備",2],["髪の毛",1],["カビ",1],["その他",1]],"maids":[["ヤスミン",3],["寺島",3],["アンジェラ",2],["ベル",2],["岩田",1],["駒野",1]],"checkers":[["寺島",2],["島村",2],["アンジェラ",1],["モニカ",1]],"sheetFound":true,"status":"active"},{"name":"コンフォートホテルERA東京東神田","pxx":"P2","r8":{"cleans":25488,"claims":7,"rate":0.027,"kuchiN":16,"kuchiRate":2.99,"r7rate":0.027},"months":["2月","3月","4月","5月","6月","7月"],"mCleans":[4225,4682,4745,5065,4518,2253],"mClaims":[4,1,0,1,1,0],"mRate":[0.095,0.021,0,0.02,0.022,0],"mKuchi":[3,1,4,3,5,0],"claimTypes":[["汚れ",3],["セット漏れ",1],["ドア閉め忘れ",1],["清掃不備",1],["髪の毛",1]],"kuchiTypes":[["臭い",11],["汚れ",2],["髪の毛",1],["清掃不備",1],["その他",1]],"maids":[["サプコタ",2],["サルミラ",2],["安達",1],["小林",1],["藤平",1]],"checkers":[["ホアン",4],["バニヤ",2],["ライ",2]],"sheetFound":true,"status":"active"},{"name":"コンフォートホテル成田","pxx":"P2","r8":{"cleans":20013,"claims":0,"rate":0,"kuchiN":11,"kuchiRate":2.84,"r7rate":0.007},"months":["2月","3月","4月","5月","6月","7月"],"mCleans":[3287,3582,3938,3964,3797,1445],"mClaims":[0,0,0,0,0,0],"mRate":[0,0,0,0,0,0],"mKuchi":[3,2,2,2,2,0],"claimTypes":[],"kuchiTypes":[["臭い",4],["清掃不備",3],["髪の毛",2],["汚れ",1],["ホコリ",1]],"maids":[],"checkers":[],"sheetFound":true,"status":"active"},{"name":"川崎日航ホテル","pxx":"P3","r8":{"cleans":24815,"claims":34,"rate":0.137,"kuchiN":7,"kuchiRate":1.34,"r7rate":0.188},"months":["2月","3月","4月","5月","6月","7月"],"mCleans":[4137,4820,4764,4442,4473,2179],"mClaims":[6,10,8,6,2,2],"mRate":[0.145,0.207,0.168,0.135,0.045,0.092],"mKuchi":[1,1,3,2,0,0],"claimTypes":[["セット漏れ",13],["その他",5],["残置",4],["清掃不備",4],["汚れ",3],["巻き込み",2],["誤入室",2],["髪の毛",1]],"kuchiTypes":[["清掃不備",3],["髪の毛",1],["汚れ",1],["臭い",1],["その他",1]],"maids":[["インドラ",13],["ラディカ",7],["シタ",4],["インディラ",3],["グマ",3],["シェルパ",3]],"checkers":[["藤田",14],["伊藤",12],["スサン",10],["児山",6],["ラザナ",5],["ジョウティ",3]],"sheetFound":true,"status":"active"},{"name":"アパホテル相模原橋本駅東","pxx":"P3","r8":{"cleans":18123,"claims":20,"rate":0.11,"kuchiN":2,"kuchiRate":1.8,"r7rate":0.037},"months":["2月","3月","4月","5月","6月","7月"],"mCleans":[3118,3458,3378,3385,3131,1653],"mClaims":[2,2,5,6,3,2],"mRate":[0.064,0.058,0.148,0.177,0.096,0.121],"mKuchi":[0,0,1,1,0,0],"claimTypes":[["セット漏れ",7],["残置",6],["手配ミス",2],["未清掃",2],["私物破棄",2],["髪の毛",1]],"kuchiTypes":[["臭い",1],["ホコリ",1]],"maids":[["小泉",2],["田井",2],["高山",2],["アヌカ",1],["佐藤",1],["吉村",1]],"checkers":[["白",3]],"sheetFound":true,"status":"active"},{"name":"変なホテル東京羽田","pxx":"P3","r8":{"cleans":26839,"claims":24,"rate":0.089,"kuchiN":25,"kuchiRate":2.9,"r7rate":0.371},"months":["2月","3月","4月","5月","6月","7月"],"mCleans":[4825,5308,4853,4838,4599,2416],"mClaims":[1,4,4,8,5,2],"mRate":[0.021,0.075,0.082,0.165,0.109,0.083],"mKuchi":[4,4,6,4,7,0],"claimTypes":[["その他",6],["残置",6],["汚れ",4],["清掃不備",4],["セット漏れ",2],["破損",1],["私物破棄",1]],"kuchiTypes":[["臭い",6],["汚れ",5],["清掃不備",5],["髪の毛",4],["ホコリ",2],["残置",1],["カビ",1],["その他",1]],"maids":[["カイン",2],["カルキ",2],["サリナ",2],["パンデェ",2],["プレム",2],["アィン",1]],"checkers":[["三島",6],["山本",5],["知念",5],["ウ",2],["サンデス　阿部",1],["ラン",1]],"sheetFound":true,"status":"active"},{"name":"ホテルコメント横浜関内","pxx":"P3","r8":{"cleans":14908,"claims":12,"rate":0.08,"kuchiN":4,"kuchiRate":1.1,"r7rate":0.151},"months":["2月","3月","4月","5月","6月","7月"],"mCleans":[2629,2958,2803,2780,2448,1290],"mClaims":[1,4,4,0,3,0],"mRate":[0.038,0.135,0.143,0,0.123,0],"mKuchi":[1,2,1,0,0,0],"claimTypes":[["汚れ",4],["セット漏れ",2],["手配ミス",2],["残置",2],["巻き込み",1],["髪の毛",1]],"kuchiTypes":[["臭い",2],["髪の毛",1],["害虫",1]],"maids":[["アマリア",2],["バダマ",2],["平田",2],["サントス",1],["ベタニー",1],["吉澤",1]],"checkers":[["荒井",4],["方",3],["福岡",3],["正木",1],["藤原",1]],"sheetFound":true,"status":"active"},{"name":"アパホテル蒲田駅東","pxx":"P3","r8":{"cleans":35015,"claims":27,"rate":0.077,"kuchiN":6,"kuchiRate":4.49,"r7rate":0.131},"months":["2月","3月","4月","5月","6月","7月"],"mCleans":[5988,6706,6454,6509,6094,3264],"mClaims":[9,3,1,6,7,1],"mRate":[0.15,0.045,0.015,0.092,0.115,0.031],"mKuchi":[2,2,1,0,1,0],"claimTypes":[["セット漏れ",15],["残置",4],["汚れ",2],["髪の毛",2],["その他",1],["手配ミス",1],["私物破棄",1],["誤入室",1]],"kuchiTypes":[["臭い",2],["ホコリ",2],["汚れ",1],["その他",1]],"maids":[["山下",4],["グルング",3],["プン",3],["ラジ",3],["大庭",3],["サラマ",2]],"checkers":[["菊地",3],["小笠原",2],["ウェリアン",1]],"sheetFound":true,"status":"active"},{"name":"コンフォートホテル博多","pxx":"P4","r8":{"cleans":36628,"claims":33,"rate":0.09,"kuchiN":40,"kuchiRate":7.42,"r7rate":0.107},"months":["2月","3月","4月","5月","6月","7月"],"mCleans":[6278,7046,6743,6807,6669,3085],"mClaims":[9,5,5,5,5,4],"mRate":[0.143,0.071,0.074,0.073,0.075,0.13],"mKuchi":[11,8,6,3,12,0],"claimTypes":[["汚れ",11],["セット漏れ",7],["残置",4],["その他",3],["手配ミス",2],["清掃不備",2],["髪の毛",2],["ドア閉め忘れ",1],["巻き込み",1]],"kuchiTypes":[["汚れ",12],["ホコリ",8],["清掃不備",7],["臭い",7],["髪の毛",3],["カビ",2],["その他",1]],"maids":[["シタ",3],["トンメ",3],["アヌダ",2],["ダリア",2],["黒田",2],["アサンジャ",1]],"checkers":[["サイトウ",5],["成田",5],["ダヤラム",4],["本村",4],["山本",3],["冨安",2]],"sheetFound":true,"status":"active"},{"name":"スタープラザ池袋","pxx":"P1","r8":{"cleans":0,"claims":0,"rate":null,"kuchiN":2,"kuchiRate":3.14,"r7rate":null},"months":["4月","5月"],"mCleans":[null,null],"mClaims":[0,0],"mRate":[null,null],"mKuchi":[1,1],"claimTypes":[],"kuchiTypes":[["臭い",1],["ホコリ",1]],"maids":[],"checkers":[],"sheetFound":true,"status":"ramp-up"},{"name":"ニュースター池袋","pxx":"P1","r8":{"cleans":129,"claims":0,"rate":0,"kuchiN":8,"kuchiRate":3.14,"r7rate":null},"months":["5月","6月","7月"],"mCleans":[null,null,129],"mClaims":[0,0,0],"mRate":[null,null,0],"mKuchi":[4,4,0],"claimTypes":[],"kuchiTypes":[["臭い",5],["カビ",3]],"maids":[],"checkers":[],"sheetFound":true,"status":"ramp-up"},{"name":"フォーポイント横浜","pxx":"P3","r8":{"cleans":2687,"claims":2,"rate":0.074,"kuchiN":2,"kuchiRate":2.68,"r7rate":null},"months":["5月","6月","7月"],"mCleans":[238,1261,1188],"mClaims":[0,2,0],"mRate":[0,0.159,0],"mKuchi":[1,1,0],"claimTypes":[["セット漏れ",2]],"kuchiTypes":[["髪の毛",1],["清掃不備",1]],"maids":[],"checkers":[["ビマル",1],["梶原",1]],"sheetFound":true,"status":"ramp-up"},{"name":"フォーポイント名古屋","pxx":"P5","r8":{"cleans":2752,"claims":1,"rate":0.036,"kuchiN":7,"kuchiRate":2.92,"r7rate":null},"months":["5月","6月","7月"],"mCleans":[17,505,2230],"mClaims":[0,1,0],"mRate":[0,0.198,0],"mKuchi":[2,5,0],"claimTypes":[["残置",1]],"kuchiTypes":[["汚れ",3],["臭い",2],["清掃不備",1],["ホコリ",1]],"maids":[["プリヤ",1]],"checkers":[["末吉",2]],"sheetFound":true,"status":"ramp-up"},{"name":"コートホテル新横浜","pxx":"P3","r8":{"cleans":null,"claims":null,"rate":null,"kuchiN":null,"kuchiRate":null,"r7rate":null},"months":[],"mCleans":[],"mClaims":[],"mRate":[],"mKuchi":[],"claimTypes":[],"kuchiTypes":[],"maids":[],"checkers":[],"sheetFound":true,"status":"no-data"}]};
+
+const NF=new Intl.NumberFormat("ja-JP");
+const cssv=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const HOTELS=DATA.hotels;
+const ACTIVE=HOTELS.filter(h=>h.status==="active");
+const RAILS=["--accent"]; // per-hotel rail assigned by pxx
+const PXX_COLOR={P1:"#2a78d6",P2:"#12a374",P3:"#eb6834",P4:"#8a5cd0",P5:"#d64d7a"};
+const PXX_COLOR_D={P1:"#4f9bf0",P2:"#2bc08c",P3:"#f2814e",P4:"#a683e0",P5:"#e56f96"};
+function pxxColor(p){const dark=matchMedia("(prefers-color-scheme:dark)").matches && document.documentElement.getAttribute("data-theme")!=="light" || document.documentElement.getAttribute("data-theme")==="dark";return (dark?PXX_COLOR_D:PXX_COLOR)[p]||cssv("--accent");}
+
+const tt=document.getElementById("tt");
+function showTT(h,e){tt.innerHTML=h;tt.style.left=e.clientX+"px";tt.style.top=e.clientY+"px";tt.style.opacity=1;}
+function moveTT(e){tt.style.left=e.clientX+"px";tt.style.top=e.clientY+"px";}
+function hideTT(){tt.style.opacity=0;}
+function bindTT(root){root.querySelectorAll("[data-tt]").forEach(b=>{b.addEventListener("mouseenter",e=>showTT(b.dataset.tt,e));b.addEventListener("mousemove",moveTT);b.addEventListener("mouseleave",hideTT);});}
+
+// severity band for claim rate (%)
+function rateBand(r){if(r==null)return"none";if(r<0.08)return"good";if(r<=0.12)return"warn";return"crit";}
+function bandColor(b){return b==="good"?cssv("--good"):b==="warn"?cssv("--warning"):b==="crit"?cssv("--critical"):cssv("--muted");}
+function fmtRate(r){return r==null?"—":r.toFixed(r<0.1?3:2)+"%";}
+function delta(h){if(h.r8.rate==null||h.r8.r7rate==null)return null;return +(h.r8.rate-h.r8.r7rate).toFixed(3);}
+function deltaHTML(h){const d=delta(h);if(d==null)return'<span class="dl flat">—</span>';const dir=d<0?"down":d>0?"up":"flat";const a=d<0?"▼":d>0?"▲":"―";return`<span class="dl ${dir}">${a}${Math.abs(d).toFixed(2)}pt</span>`;}
+
+/* ---------- note strip & status legend ---------- */
+function renderNotes(){
+  const n={active:0,ramp:0,nodata:0};
+  HOTELS.forEach(h=>{n[h.status==="active"?"active":h.status==="ramp-up"?"ramp":"nodata"]++;});
+  document.getElementById("noteStrip").innerHTML=
+    `<span class="tag">対象：<strong>${HOTELS.length}ホテル</strong></span>`+
+    `<span class="tag">集計年度：<strong>${DATA.fiscalYear}（今年）</strong></span>`+
+    `<span class="tag warn">${DATA.asOf}</span>`;
+  document.getElementById("statusLegend").innerHTML=
+    `<span class="it"><span class="sdot" style="background:var(--good)"></span>通常稼働 ${n.active}</span>`+
+    `<span class="it"><span class="sdot" style="background:var(--warning)"></span>立ち上げ中／データ僅少 ${n.ramp}</span>`+
+    `<span class="it"><span class="sdot" style="background:var(--muted)"></span>データ未整備 ${n.nodata}</span>`;
+}
+
+/* ---------- global KPI ---------- */
+function renderGKPI(){
+  const cl=ACTIVE.reduce((a,h)=>a+(h.r8.cleans||0),0);
+  const cm=ACTIVE.reduce((a,h)=>a+(h.r8.claims||0),0);
+  const rate=cl?cm/cl*100:0;
+  const kuchi=ACTIVE.reduce((a,h)=>a+(h.r8.kuchiN||0),0);
+  const avgKuchiRate=ACTIVE.filter(h=>h.r8.kuchiRate!=null).reduce((a,h,_,arr)=>a+h.r8.kuchiRate/arr.length,0);
+  // R7 vs R8 全社クレーム率（加重は不可なので単純: R7合算は無い→平均デルタ）
+  const withD=ACTIVE.filter(h=>delta(h)!=null);
+  const avgD=withD.reduce((a,h)=>a+delta(h),0)/(withD.length||1);
+  document.getElementById("gkpi").innerHTML=
+    `<div class="gk"><div class="v">${NF.format(cl)}</div><div class="l">総清掃数（R8累計）</div><div class="sub2">通常稼働${ACTIVE.length}ホテル</div></div>`+
+    `<div class="gk"><div class="v">${rate.toFixed(3)}<span class="u">%</span></div><div class="l">全社クレーム率</div><div class="sub2">クレーム計 ${NF.format(cm)}件</div></div>`+
+    `<div class="gk"><div class="v">${avgKuchiRate.toFixed(2)}<span class="u">%</span></div><div class="l">平均 口コミ指摘率</div><div class="sub2">口コミ指摘計 ${NF.format(kuchi)}件</div></div>`+
+    `<div class="gk"><div class="v" style="color:${avgD<0?'var(--good-ink)':'var(--crit-ink)'}">${avgD<0?'▼':'▲'}${Math.abs(avgD).toFixed(2)}<span class="u">pt</span></div><div class="l">クレーム率 平均増減（R7→R8）</div><div class="sub2">${withD.length}ホテル平均</div></div>`;
+}
+
+/* ---------- ranking ---------- */
+let sortKey="rate", pxxFilter="all";
+function renderRank(){
+  let list=HOTELS.filter(h=>h.r8[sortKey]!=null);
+  if(pxxFilter!=="all")list=list.filter(h=>h.pxx===pxxFilter);
+  const asc=(sortKey==="rate"||sortKey==="kuchiRate")?false:false; // all desc
+  list.sort((a,b)=>(b.r8[sortKey]||0)-(a.r8[sortKey]||0));
+  const max=Math.max(...list.map(h=>h.r8[sortKey]||0),0.0001);
+  const unit=sortKey==="rate"||sortKey==="kuchiRate"?"%":"件";
+  const isRate=sortKey==="rate";
+  document.getElementById("rankList").innerHTML=list.map(h=>{
+    const v=h.r8[sortKey];
+    const b=isRate?rateBand(v):"accent";
+    const col=isRate?bandColor(b):pxxColor(h.pxx);
+    const w=Math.max((v/max*100),1.2);
+    const valtxt=(sortKey==="rate")?fmtRate(v):(sortKey==="kuchiRate")?v.toFixed(2)+"%":NF.format(v)+"件";
+    const extra=isRate?deltaHTML(h):`<span style="color:var(--muted);font-size:11px">${NF.format(h.r8.cleans||0)}室</span>`;
+    return `<div class="rrow" data-name="${h.name}">
+      <div class="rname"><span class="pxx">${h.pxx}</span><span class="nm">${h.name}</span></div>
+      <div class="rtrack"><div class="rfill" style="width:${w}%;background:${col}"
+        data-tt="<b>${h.name}</b><br>${sortLabel()} <b>${valtxt}</b>"></div></div>
+      <div class="rmeta"><b>${valtxt}</b> ${extra}</div>
+    </div>`;
+  }).join("");
+  bindTT(document.getElementById("rankList"));
+  document.querySelectorAll("#rankList .rrow").forEach(r=>r.addEventListener("click",()=>openModal(r.dataset.name)));
+}
+function sortLabel(){return {rate:"クレーム率",kuchiRate:"口コミ指摘率",claims:"クレーム数",cleans:"清掃数"}[sortKey];}
+
+/* ---------- scatter (claim rate x kuchi rate) ---------- */
+function renderScatter(){
+  const el=document.getElementById("scatter");
+  const pts=ACTIVE.filter(h=>h.r8.rate!=null&&h.r8.kuchiRate!=null);
+  const W=el.clientWidth||1080,H=380,m={t:18,r:20,b:46,l:52};
+  const iw=W-m.l-m.r,ih=H-m.t-m.b;
+  const xMax=Math.max(...pts.map(p=>p.r8.rate))*1.12;
+  const yMax=Math.max(...pts.map(p=>p.r8.kuchiRate))*1.12;
+  const x=v=>m.l+iw*(v/xMax), y=v=>m.t+ih*(1-v/yMax);
+  const grid=cssv("--grid"),muted=cssv("--muted");
+  const xMed=median(pts.map(p=>p.r8.rate)), yMed=median(pts.map(p=>p.r8.kuchiRate));
+  let s=`<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}" role="img" aria-label="品質マトリクス">`;
+  // quadrant shading (right-bottom good)
+  s+=`<rect x="${x(xMed)}" y="${y(yMed)}" width="${x(xMax)-x(xMed)}" height="${y(0)-y(yMed)}" fill="var(--band-good)"/>`;
+  s+=`<rect x="${m.l}" y="${m.t}" width="${x(xMed)-m.l}" height="${y(yMed)-m.t}" fill="var(--band-crit)"/>`;
+  // grid
+  for(let i=0;i<=4;i++){const gv=yMax*i/4;s+=`<line x1="${m.l}" y1="${y(gv)}" x2="${W-m.r}" y2="${y(gv)}" stroke="${grid}"/><text class="axis-label" x="${m.l-8}" y="${y(gv)+4}" text-anchor="end">${gv.toFixed(1)}%</text>`;}
+  for(let i=0;i<=4;i++){const gv=xMax*i/4;s+=`<text class="axis-label" x="${x(gv)}" y="${H-24}" text-anchor="middle">${gv.toFixed(2)}%</text>`;}
+  // median lines
+  s+=`<line x1="${x(xMed)}" y1="${m.t}" x2="${x(xMed)}" y2="${y(0)}" stroke="${muted}" stroke-dasharray="3 3" opacity=".5"/>`;
+  s+=`<line x1="${m.l}" y1="${y(yMed)}" x2="${W-m.r}" y2="${y(yMed)}" stroke="${muted}" stroke-dasharray="3 3" opacity=".5"/>`;
+  // axis titles
+  s+=`<text class="axis-label" x="${m.l+iw/2}" y="${H-6}" text-anchor="middle" font-weight="600">クレーム率 →</text>`;
+  s+=`<text class="axis-label" transform="translate(14,${m.t+ih/2}) rotate(-90)" text-anchor="middle" font-weight="600">口コミ指摘率 →</text>`;
+  // points
+  pts.forEach(p=>{
+    const col=pxxColor(p.pxx);
+    s+=`<circle cx="${x(p.r8.rate)}" cy="${y(p.r8.kuchiRate)}" r="7" fill="${col}" fill-opacity=".82" stroke="var(--surface)" stroke-width="1.5"
+      class="scpt" data-name="${p.name}" style="cursor:pointer"
+      data-tt="<b>${p.name}</b> (${p.pxx})<br>クレーム率 <b>${fmtRate(p.r8.rate)}</b> ／ 口コミ指摘率 <b>${p.r8.kuchiRate.toFixed(2)}%</b>"/>`;
+  });
+  s+=`</svg>`;
+  el.innerHTML=s;
+  bindTT(el);
+  el.querySelectorAll(".scpt").forEach(c=>c.addEventListener("click",()=>openModal(c.dataset.name)));
+  document.getElementById("scatterNote").innerHTML=
+    `破線は中央値（クレーム率 ${xMed.toFixed(3)}% ／ 口コミ指摘率 ${yMed.toFixed(2)}%）。<b>左上（赤帯）</b>はクレーム率は低いのに口コミ指摘率が高い＝現場チェックで拾えていない指摘が口コミに出ている可能性。<b>右下（緑帯）</b>が両方良好。点の色はP区分。`;
+}
+function median(a){const s=[...a].sort((x,y)=>x-y);const n=s.length;return n%2?s[(n-1)/2]:(s[n/2-1]+s[n/2])/2;}
+
+/* ---------- type aggregation ---------- */
+function aggTypes(field){const m={};ACTIVE.forEach(h=>(h[field]||[]).forEach(([n,c])=>m[n]=(m[n]||0)+c));return Object.entries(m).sort((a,b)=>b[1]-a[1]);}
+function renderTypeAgg(){
+  [["claimTypes","claimTypeAgg","--accent"],["kuchiTypes","kuchiTypeAgg","--warning"]].forEach(([f,id,cvar])=>{
+    const rows=aggTypes(f);const tot=rows.reduce((a,b)=>a+b[1],0);const max=Math.max(...rows.map(r=>r[1]),1);
+    document.getElementById(id).innerHTML=rows.map(([n,c])=>`
+      <div class="tbar-row">
+        <span class="tn">${n}</span>
+        <span class="tbar-track"><span class="tbar-fill" style="width:${c/max*100}%;background:var(${cvar})" data-tt="<b>${n}</b>：${c}件（${(c/tot*100).toFixed(1)}%）"></span></span>
+        <span class="tbar-val"><b>${c}</b> ・${(c/tot*100).toFixed(0)}%</span>
+      </div>`).join("");
+    bindTT(document.getElementById(id));
+  });
+}
+
+/* ---------- hotel grid ---------- */
+function sparkline(h){
+  const vals=h.mRate.map(v=>v==null?null:v);
+  const W=150,H=34,pad=3;
+  const real=vals.filter(v=>v!=null);
+  if(!real.length)return`<svg width="${W}" height="${H}"></svg>`;
+  const mx=Math.max(...real,0.001);
+  const n=vals.length;
+  const x=i=>pad+(n<=1?0:(W-2*pad)*i/(n-1));
+  const y=v=>H-pad-(H-2*pad)*(v/mx);
+  let d="",st=false;vals.forEach((v,i)=>{if(v==null){st=false;return;}d+=(st?"L":"M")+x(i)+" "+y(v)+" ";st=true;});
+  const col=bandColor(rateBand(h.r8.rate));
+  let last=n-1;while(last>=0&&vals[last]==null)last--;
+  return`<svg width="${W}" height="${H}" style="overflow:visible"><path d="${d}" fill="none" stroke="${col}" stroke-width="1.8" stroke-linejoin="round"/>${last>=0?`<circle cx="${x(last)}" cy="${y(vals[last])}" r="2.6" fill="${col}"/>`:""}</svg>`;
+}
+function renderHGrid(){
+  document.getElementById("hgridNote").textContent=`全${HOTELS.length}ホテル・クリックで詳細（月次推移・種別・担当別）`;
+  document.getElementById("hgrid").innerHTML=HOTELS.map(h=>{
+    const rail=pxxColor(h.pxx);
+    const badge=h.status==="ramp-up"?`<span class="badge ramp">立ち上げ中</span>`:h.status==="no-data"?`<span class="badge nodata">データ未整備</span>`:"";
+    const rateBlock=h.r8.rate!=null?
+      `<div class="hrate">${fmtRate(h.r8.rate)}</div>`:
+      `<div class="hrate" style="font-size:18px;color:var(--muted)">—</div>`;
+    const stats=h.status==="no-data"?"":`
+      <div class="hstats">
+        <div class="hstat"><div class="sv">${h.r8.cleans!=null?NF.format(h.r8.cleans):"—"}</div><div class="sl">清掃数</div></div>
+        <div class="hstat"><div class="sv">${h.r8.claims!=null?h.r8.claims:"—"}</div><div class="sl">クレーム</div></div>
+        <div class="hstat"><div class="sv">${h.r8.kuchiRate!=null?h.r8.kuchiRate.toFixed(2)+"%":"—"}</div><div class="sl">口コミ率</div></div>
+      </div>`;
+    return `<div class="hcard" style="--rail:${rail}" data-name="${h.name}">
+      <div class="htop"><div class="hname">${h.name}</div><div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end">${badge||`<span class="hpxx">${h.pxx}</span>`}</div></div>
+      <div class="hmain">
+        <div><div class="hrate-l">クレーム率</div>${rateBlock}</div>
+        ${h.r8.rate!=null?`<div class="hdelta">${deltaHTML(h)}</div>`:""}
+      </div>
+      ${h.mRate&&h.mRate.some(v=>v!=null)?`<div class="spark">${sparkline(h)}</div>`:""}
+      ${stats}
+    </div>`;
+  }).join("");
+  document.querySelectorAll("#hgrid .hcard").forEach(c=>c.addEventListener("click",()=>openModal(c.dataset.name)));
+}
+
+/* ---------- modal ---------- */
+const backdrop=document.getElementById("backdrop"),modalEl=document.getElementById("modal");
+function closeModal(){backdrop.classList.remove("open");modalEl.classList.remove("open");}
+backdrop.addEventListener("click",closeModal);
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal();});
+function openModal(name){
+  const h=HOTELS.find(x=>x.name===name);if(!h)return;
+  const rail=pxxColor(h.pxx);
+  let body=`<div class="modal-head"><div><h3>${h.name}</h3></div><button class="mx" aria-label="閉じる" onclick="(function(){document.getElementById('backdrop').classList.remove('open');document.getElementById('modal').classList.remove('open');})()">×</button></div>`;
+  body+=`<div class="mmeta">${h.pxx}　/　${statusLabel(h.status)}　/　R8集計（${DATA.asOf}）</div>`;
+  if(h.status==="no-data"){
+    body+=`<p style="color:var(--ink-2);font-size:13.5px">この現場はR8の品質データまとめが未整備です（立ち上げ中の可能性）。集計表への入力が進み次第、反映できます。</p>`;
+    modalEl.innerHTML=body;openBack();return;
+  }
+  // KPI
+  body+=`<div class="mkpi">
+    <div class="mk"><div class="v">${h.r8.cleans!=null?NF.format(h.r8.cleans):"—"}</div><div class="l">清掃数</div></div>
+    <div class="mk"><div class="v">${h.r8.claims!=null?h.r8.claims:"—"}</div><div class="l">クレーム数</div></div>
+    <div class="mk"><div class="v" style="color:${bandColor(rateBand(h.r8.rate))}">${fmtRate(h.r8.rate)}</div><div class="l">クレーム率</div></div>
+    <div class="mk"><div class="v">${h.r8.kuchiN!=null?h.r8.kuchiN:"—"}</div><div class="l">口コミ指摘数</div></div>
+    <div class="mk"><div class="v">${h.r8.kuchiRate!=null?h.r8.kuchiRate.toFixed(2)+"%":"—"}</div><div class="l">口コミ指摘率</div></div>
+  </div>`;
+  // monthly line
+  body+=`<p class="msec-t">月次クレーム率の推移（R8・2〜7月／7月は集計途中）</p>`;
+  body+=`<div class="legend"><span class="item"><span class="sw" style="background:${rail}"></span>クレーム率</span><span class="item" style="color:var(--muted)">R7年間平均：${h.r8.r7rate!=null?h.r8.r7rate.toFixed(3)+"%":"—"}（点線）</span></div>`;
+  body+=`<div id="mLine"></div>`;
+  // types + ranks
+  body+=`<div class="mrow2" style="margin-top:22px">
+    <div><p class="msec-t">クレーム種別</p><div id="mClaimT"></div></div>
+    <div><p class="msec-t">口コミ指摘 種別</p><div id="mKuchiT"></div></div>
+  </div>`;
+  body+=`<div class="mrow2-3">
+    <div><p class="msec-t">メイド別クレーム件数（上位）</p><div id="mMaid" class="mini-rank"></div></div>
+    <div><p class="msec-t">チェッカー別クレーム件数（上位）</p><div id="mChecker" class="mini-rank"></div></div>
+  </div>`;
+  modalEl.innerHTML=body;openBack();
+  drawModalLine(h,rail);
+  drawTypeBars("mClaimT",h.claimTypes,rail,h.r8.claims);
+  drawTypeBars("mKuchiT",h.kuchiTypes,cssv("--warning"),h.r8.kuchiN);
+  drawMiniRank("mMaid",h.maids,rail);
+  drawMiniRank("mChecker",h.checkers,rail);
+}
+function openBack(){backdrop.classList.add("open");modalEl.classList.add("open");modalEl.scrollTop=0;}
+function statusLabel(s){return s==="active"?"通常稼働":s==="ramp-up"?"立ち上げ中／データ僅少":"データ未整備";}
+
+function drawModalLine(h,col){
+  const el=document.getElementById("mLine");if(!el)return;
+  const months=h.months,rates=h.mRate;
+  const W=el.clientWidth||840,H=210,m={t:14,r:44,b:30,l:44};
+  const iw=W-m.l-m.r,ih=H-m.t-m.b;
+  const real=rates.filter(v=>v!=null);
+  const yMax=Math.max(...real,h.r8.r7rate||0,0.05)*1.15;
+  const x=i=>m.l+(months.length<=1?0:iw*i/(months.length-1));
+  const y=v=>m.t+ih*(1-v/yMax);
+  const grid=cssv("--grid"),muted=cssv("--muted");
+  let s=`<svg viewBox="0 0 ${W} ${H}" width="100%" height="${H}">`;
+  for(let i=0;i<=4;i++){const gv=yMax*i/4;s+=`<line x1="${m.l}" y1="${y(gv)}" x2="${W-m.r}" y2="${y(gv)}" stroke="${grid}"/><text class="axis-label" x="${m.l-7}" y="${y(gv)+4}" text-anchor="end">${gv.toFixed(2)}%</text>`;}
+  months.forEach((mo,i)=>s+=`<text class="axis-label" x="${x(i)}" y="${H-12}" text-anchor="middle">${mo}</text>`);
+  if(h.r8.r7rate!=null){s+=`<line x1="${m.l}" y1="${y(h.r8.r7rate)}" x2="${W-m.r}" y2="${y(h.r8.r7rate)}" stroke="${muted}" stroke-dasharray="4 4" opacity=".7"/>`;}
+  let d="",st=false;rates.forEach((v,i)=>{if(v==null){st=false;return;}d+=(st?"L":"M")+x(i)+" "+y(v)+" ";st=true;});
+  s+=`<path d="${d}" fill="none" stroke="${col}" stroke-width="2.3" stroke-linejoin="round" stroke-linecap="round"/>`;
+  rates.forEach((v,i)=>{if(v==null)return;s+=`<circle cx="${x(i)}" cy="${y(v)}" r="4" fill="var(--surface)" stroke="${col}" stroke-width="2" style="cursor:pointer" data-tt="<b>${months[i]}</b>：クレーム率 <b>${v.toFixed(3)}%</b><br>クレーム ${h.mClaims[i]}件 / 清掃 ${h.mCleans[i]!=null?NF.format(h.mCleans[i]):'—'}"/>`;});
+  s+=`</svg>`;el.innerHTML=s;bindTT(el);
+}
+function drawTypeBars(id,types,col,total){
+  const el=document.getElementById(id);if(!el)return;
+  if(!types||!types.length){el.innerHTML=`<p style="color:var(--muted);font-size:12px">該当データなし</p>`;return;}
+  const max=Math.max(...types.map(t=>t[1]));const tot=total||types.reduce((a,b)=>a+b[1],0);
+  el.innerHTML=types.map(([n,c])=>`
+    <div class="tbar-row" style="grid-template-columns:76px 1fr 58px">
+      <span class="tn">${n}</span>
+      <span class="tbar-track"><span class="tbar-fill" style="width:${c/max*100}%;background:${col}" data-tt="<b>${n}</b>：${c}件"></span></span>
+      <span class="tbar-val"><b>${c}</b>・${(c/tot*100).toFixed(0)}%</span>
+    </div>`).join("");
+  bindTT(el);
+}
+function drawMiniRank(id,rows,col){
+  const el=document.getElementById(id);if(!el)return;
+  if(!rows||!rows.length){el.innerHTML=`<p style="color:var(--muted);font-size:12px">該当データなし</p>`;return;}
+  const max=Math.max(...rows.map(r=>r[1]));
+  el.innerHTML=rows.map(([n,c])=>`
+    <div class="mr"><div class="mrt"><div class="mrf" style="width:${c/max*100}%;background:${col}" data-tt="<b>${n}</b>：${c}件"></div></div><div class="mrv">${c}</div><div class="mrn">${n}</div></div>`).join("");
+  bindTT(el);
+}
+
+/* ---------- foot ---------- */
+document.getElementById("foot").innerHTML=
+  `<p>※ 出典：Google Drive「各ホテル R8_集計表」内の「R8品質データまとめ」シート。R8年度（今年）の実績のみを対象。</p>`+
+  `<p>※ クレーム率＝クレーム数÷清掃数。口コミ（清潔感）指摘率＝口コミ指摘数÷口コミ件数で、クレーム率とは母数が異なるため直接比較はできません。</p>`+
+  `<p>※ R8は年度途中で、データは概ね2〜7月。7月は現場により集計途中（清掃数が少ない）です。「立ち上げ中」は清掃数が僅少または稼働開始直後の現場、「データ未整備」は集計表への入力が未完了の現場です。</p>`+
+  `<p>※ クレーム率のR7→R8増減（pt）は前年同指標との差。▼＝改善（低下）。</p>`;
+
+/* ---------- controls ---------- */
+document.querySelectorAll("#sortSeg button").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll("#sortSeg button").forEach(x=>x.classList.remove("on"));b.classList.add("on");sortKey=b.dataset.k;renderRank();}));
+document.querySelectorAll("#pxxSeg button").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll("#pxxSeg button").forEach(x=>x.classList.remove("on"));b.classList.add("on");pxxFilter=b.dataset.p;renderRank();}));
+
+function renderAll(){renderNotes();renderGKPI();renderRank();renderScatter();renderTypeAgg();renderHGrid();}
+renderAll();
+let rt;addEventListener("resize",()=>{clearTimeout(rt);rt=setTimeout(()=>{renderScatter();},160);});
+const mo=new MutationObserver(()=>renderAll());mo.observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+if(window.matchMedia)matchMedia("(prefers-color-scheme:dark)").addEventListener("change",renderAll);
+</script>
+
+</body>
+</html>

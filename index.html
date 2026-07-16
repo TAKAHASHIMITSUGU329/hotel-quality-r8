@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>R8 客室清掃品質 分析プロジェクト</title>
+<style>
+  :root{
+    color-scheme:light;
+    --paper:#eceee9;--surface:#fdfdfc;--surface-2:#f4f5f2;
+    --ink:#181b20;--ink-2:#545961;--muted:#8a8e96;
+    --hairline:rgba(18,20,25,.11);--hairline-2:rgba(18,20,25,.06);
+    --accent:#35507a;--accent-2:#4a6ea6;--accent-soft:#e7ecf3;
+    --good-ink:#0b6e30;--warn-ink:#9a6600;
+    --p1:#2a78d6;--p3:#eb6834;
+    --shadow:0 1px 2px rgba(18,20,25,.04),0 10px 30px rgba(18,20,25,.07);
+  }
+  @media (prefers-color-scheme:dark){:root:where(:not([data-theme="light"])){
+    color-scheme:dark;
+    --paper:#0c0d0f;--surface:#17191d;--surface-2:#1e2126;
+    --ink:#f4f5f4;--ink-2:#b7bbc2;--muted:#83868d;
+    --hairline:rgba(255,255,255,.12);--hairline-2:rgba(255,255,255,.06);
+    --accent:#7f9dce;--accent-2:#8faed8;--accent-soft:#23303f;
+    --good-ink:#4cc877;--warn-ink:#e8b64b;
+    --p1:#4f9bf0;--p3:#f2814e;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 12px 34px rgba(0,0,0,.45);
+  }}
+  :root[data-theme="dark"]{
+    color-scheme:dark;
+    --paper:#0c0d0f;--surface:#17191d;--surface-2:#1e2126;
+    --ink:#f4f5f4;--ink-2:#b7bbc2;--muted:#83868d;
+    --hairline:rgba(255,255,255,.12);--hairline-2:rgba(255,255,255,.06);
+    --accent:#7f9dce;--accent-2:#8faed8;--accent-soft:#23303f;
+    --good-ink:#4cc877;--warn-ink:#e8b64b;--p1:#4f9bf0;--p3:#f2814e;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 12px 34px rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic","Meiryo",sans-serif;
+    line-height:1.7;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:960px;margin:0 auto;padding:0 24px 90px}
+  .hero{padding:70px 0 40px;border-bottom:1px solid var(--hairline)}
+  .eyebrow{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:700;margin:0 0 14px}
+  h1{font-size:40px;line-height:1.16;margin:0 0 18px;letter-spacing:-.02em;text-wrap:balance;font-weight:760}
+  .lede{font-size:16.5px;color:var(--ink-2);margin:0;max-width:62ch}
+  .meta{margin-top:26px;display:flex;flex-wrap:wrap;gap:8px 10px}
+  .chip{font-size:12px;padding:5px 12px;border-radius:999px;background:var(--surface);border:1px solid var(--hairline);color:var(--ink-2)}
+  .chip strong{color:var(--ink);font-weight:650}
+  .chip.warn{background:color-mix(in srgb,var(--warn-ink) 16%,var(--surface));border-color:transparent;color:var(--ink)}
+
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:44px 0 8px}
+  .st{background:var(--surface);border:1px solid var(--hairline);border-radius:14px;padding:18px;box-shadow:var(--shadow)}
+  .st .v{font-size:30px;font-weight:750;letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums}
+  .st .v .u{font-size:14px;font-weight:600;color:var(--ink-2)}
+  .st .l{font-size:12px;color:var(--ink-2);margin-top:9px;line-height:1.45}
+
+  h2{font-size:13px;letter-spacing:.03em;margin:52px 0 18px;padding-bottom:9px;border-bottom:2px solid var(--ink);display:inline-block;font-weight:750}
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  a.card{display:block;text-decoration:none;color:inherit;background:var(--surface);border:1px solid var(--hairline);border-radius:18px;
+    padding:26px;box-shadow:var(--shadow);transition:transform .14s,border-color .14s;position:relative;overflow:hidden}
+  a.card:hover{transform:translateY(-3px);border-color:var(--accent)}
+  a.card::before{content:"";position:absolute;left:0;top:0;right:0;height:5px;background:var(--rail)}
+  .card .ico{font-size:32px;line-height:1;margin-bottom:14px}
+  .card h3{font-size:20px;margin:0 0 8px;letter-spacing:-.01em;font-weight:720}
+  .card p{font-size:13.5px;color:var(--ink-2);margin:0 0 16px}
+  .card .go{font-size:13px;font-weight:700;color:var(--accent-2);display:inline-flex;align-items:center;gap:5px}
+  .card ul{margin:0 0 16px;padding-left:18px;font-size:13px;color:var(--ink-2)}
+  .card li{margin-bottom:4px}
+
+  .note{background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 24%,transparent);border-radius:14px;padding:18px 20px;margin-top:40px}
+  .note .t{font-weight:700;font-size:13px;color:var(--accent-2);margin-bottom:6px;letter-spacing:.02em}
+  .note p{margin:0;font-size:13.5px;color:var(--ink)}
+  .foot{margin-top:40px;padding-top:20px;border-top:1px solid var(--hairline);font-size:12px;color:var(--muted)}
+  .foot p{margin:0 0 6px}
+  @media (max-width:720px){h1{font-size:30px}.stats{grid-template-columns:1fr 1fr}.cards{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <p class="eyebrow">R8 客室清掃品質 分析プロジェクト</p>
+    <h1>ホテル清掃品質の<br>可視化と改善プラン</h1>
+    <p class="lede">稼働中の全ホテルのR8年度（今年）集計表をもとに、クレーム率と口コミ（清潔感）指摘を横断分析し、件数インパクト起点の改善案までを一つにまとめたプロジェクトです。</p>
+    <div class="meta">
+      <span class="chip">対象：<strong>全23ホテル</strong>（通常稼働18）</span>
+      <span class="chip">集計：<strong>R8 2〜7月</strong></span>
+      <span class="chip warn">社内・個人情報を含む（取扱注意）</span>
+    </div>
+  </header>
+
+  <section>
+    <div class="stats">
+      <div class="st"><div class="v">23</div><div class="l">対象ホテル</div></div>
+      <div class="st"><div class="v">366<span class="u">件</span></div><div class="l">R8 クレーム総数</div></div>
+      <div class="st"><div class="v">272<span class="u">件</span></div><div class="l">口コミ（清潔感）指摘</div></div>
+      <div class="st"><div class="v">64<span class="u">%</span></div><div class="l">クレームの上位3種が占める割合</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>成果物</h2>
+    <div class="cards">
+      <a class="card" href="./dashboard.html" style="--rail:var(--p1)">
+        <div class="ico">🏨</div>
+        <h3>品質ダッシュボード</h3>
+        <p>全23ホテルのクレーム率・口コミ指摘を横断比較。ランキング、品質マトリクス、ホテル別ドリルダウン。</p>
+        <ul>
+          <li>クレーム率ランキング（並び替え・区分フィルタ）</li>
+          <li>品質マトリクス（クレーム率 × 口コミ指摘率）</li>
+          <li>ホテル別の月次推移・種別・担当別詳細</li>
+        </ul>
+        <span class="go">ダッシュボードを開く →</span>
+      </a>
+      <a class="card" href="./report.html" style="--rail:var(--p3)">
+        <div class="ico">📋</div>
+        <h3>改善提案レポート</h3>
+        <p>分析にもとづく、件数インパクト起点の改善プラン。全社標準化と現場別重点の二段構え。</p>
+        <ul>
+          <li>全社標準化（セット漏れ・残置・汚れ）</li>
+          <li>口コミ「臭い」対策とチェック乖離の解消</li>
+          <li>現場別重点・担当支援・実行ロードマップ</li>
+        </ul>
+        <span class="go">レポートを開く →</span>
+      </a>
+    </div>
+  </section>
+
+  <div class="note">
+    <div class="t">主要な発見</div>
+    <p>クレームは<strong>セット漏れ・残置・汚れ</strong>の3種で全体の64%。一方、お客様の口コミでは<strong>「臭い」</strong>が最大要因（33.5%）で、現場のクレーム率とは連動していません。「作業ミスの標準化」と「清潔感（臭い）対策」を別軸で進めるのが要点です。</p>
+  </div>
+
+  <div class="foot">
+    <p>※ 出典：Google Drive 各ホテル「R8_集計表」内「R8品質データまとめ」シート。データは R8年度・概ね2〜7月（7月は集計途中）。</p>
+    <p>※ 本リポジトリは社内クレームデータおよび担当者名（個人情報）を含みます。<strong>非公開（private）</strong>での取り扱いを前提とし、共有範囲にご注意ください。</p>
+    <p>※ 担当者別の分析は教育・支援・負荷平準化を目的とし、評価・懲罰を意図するものではありません。</p>
+  </div>
+</div>
+
+<script>
+  // テーマトグルは各ページのOS/親設定に追従（このページは静的）
+</script>
+</body>
+</html>

@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+</head>
+<body>
+<title>R8 客室清掃品質 改善提案レポート</title>
+<style>
+  :root{
+    color-scheme:light;
+    --paper:#eceee9;--surface:#fdfdfc;--surface-2:#f4f5f2;--surface-3:#eeeee9;
+    --ink:#181b20;--ink-2:#54596180;--ink-2:#545961;--muted:#8a8e96;
+    --hairline:rgba(18,20,25,.11);--hairline-2:rgba(18,20,25,.06);
+    --accent:#35507a;--accent-2:#4a6ea6;--accent-soft:#e7ecf3;
+    --good:#0f8a3c;--good-ink:#0b6e30;--warning:#c98500;--warn-ink:#9a6600;--critical:#cc3b3b;--crit-ink:#b22c2c;
+    --band-good:rgba(15,138,60,.12);--band-warn:rgba(201,133,0,.13);--band-crit:rgba(204,59,59,.12);
+    --p1:#2a78d6;--p2:#12a374;--p3:#eb6834;--p4:#8a5cd0;
+    --shadow:0 1px 2px rgba(18,20,25,.04),0 8px 24px rgba(18,20,25,.06);
+  }
+  @media (prefers-color-scheme:dark){:root:where(:not([data-theme="light"])){
+    color-scheme:dark;
+    --paper:#0c0d0f;--surface:#17191d;--surface-2:#1e2126;--surface-3:#23262c;
+    --ink:#f4f5f4;--ink-2:#b7bbc2;--muted:#83868d;
+    --hairline:rgba(255,255,255,.12);--hairline-2:rgba(255,255,255,.06);
+    --accent:#7f9dce;--accent-2:#6d8ec5;--accent-soft:#23303f;
+    --good:#34b861;--good-ink:#4cc877;--warning:#e0a021;--warn-ink:#e8b64b;--critical:#e46464;--crit-ink:#ee8080;
+    --band-good:rgba(52,184,97,.14);--band-warn:rgba(224,160,33,.14);--band-crit:rgba(228,100,100,.14);
+    --p1:#4f9bf0;--p2:#2bc08c;--p3:#f2814e;--p4:#a683e0;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 28px rgba(0,0,0,.4);
+  }}
+  :root[data-theme="dark"]{
+    color-scheme:dark;
+    --paper:#0c0d0f;--surface:#17191d;--surface-2:#1e2126;--surface-3:#23262c;
+    --ink:#f4f5f4;--ink-2:#b7bbc2;--muted:#83868d;
+    --hairline:rgba(255,255,255,.12);--hairline-2:rgba(255,255,255,.06);
+    --accent:#7f9dce;--accent-2:#6d8ec5;--accent-soft:#23303f;
+    --good:#34b861;--good-ink:#4cc877;--warning:#e0a021;--warn-ink:#e8b64b;--critical:#e46464;--crit-ink:#ee8080;
+    --band-good:rgba(52,184,97,.14);--band-warn:rgba(224,160,33,.14);--band-crit:rgba(228,100,100,.14);
+    --p1:#4f9bf0;--p2:#2bc08c;--p3:#f2814e;--p4:#a683e0;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 28px rgba(0,0,0,.4);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic","Meiryo",sans-serif;
+    line-height:1.72;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:940px;margin:0 auto;padding:0 22px 90px}
+  .col{max-width:720px}
+
+  /* cover */
+  .cover{padding:64px 0 40px;border-bottom:1px solid var(--hairline)}
+  .eyebrow{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:700;margin:0 0 14px}
+  h1{font-size:38px;line-height:1.18;margin:0 0 18px;letter-spacing:-.02em;text-wrap:balance;font-weight:760}
+  .lede{font-size:16.5px;color:var(--ink-2);margin:0;max-width:60ch;line-height:1.75}
+  .cover-meta{margin-top:26px;display:flex;flex-wrap:wrap;gap:8px 10px}
+  .chip{font-size:12px;padding:5px 12px;border-radius:999px;background:var(--surface);border:1px solid var(--hairline);color:var(--ink-2)}
+  .chip strong{color:var(--ink);font-weight:650}
+
+  h2{font-size:14px;letter-spacing:.02em;margin:0 0 20px;padding-bottom:10px;border-bottom:2px solid var(--ink);display:inline-block;font-weight:750}
+  .sec{padding:46px 0;border-bottom:1px solid var(--hairline)}
+  .sec-num{font-size:12.5px;color:var(--accent);font-weight:700;letter-spacing:.05em}
+  h3{font-size:22px;margin:0 0 8px;letter-spacing:-.01em;font-weight:720;text-wrap:balance}
+  p{margin:0 0 15px}
+  .muted{color:var(--muted)}
+  strong.hl{color:var(--ink);font-weight:700}
+  .accent{color:var(--accent-2);font-weight:700}
+
+  /* exec summary highlight stats */
+  .exec-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:8px 0 26px}
+  .es{background:var(--surface);border:1px solid var(--hairline);border-radius:14px;padding:18px;box-shadow:var(--shadow)}
+  .es .v{font-size:32px;font-weight:750;letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums}
+  .es .v .u{font-size:15px;font-weight:600;color:var(--ink-2)}
+  .es .l{font-size:12.5px;color:var(--ink-2);margin-top:9px;line-height:1.5}
+
+  .callout{background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 25%,transparent);border-radius:14px;padding:18px 20px;margin:22px 0}
+  .callout .t{font-weight:700;font-size:13.5px;color:var(--accent-2);margin-bottom:6px;letter-spacing:.02em}
+  .callout p{margin:0;font-size:14px;color:var(--ink)}
+
+  /* measure cards */
+  .measure{background:var(--surface);border:1px solid var(--hairline);border-radius:16px;padding:22px 24px;margin-bottom:16px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+  .measure::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--rail,var(--accent))}
+  .m-head{display:flex;align-items:baseline;gap:12px;margin-bottom:4px;padding-left:6px}
+  .m-pri{font-size:12px;font-weight:800;color:#fff;background:var(--rail,var(--accent));border-radius:7px;padding:2px 9px;letter-spacing:.03em;flex:none}
+  .m-title{font-size:18px;font-weight:720;letter-spacing:-.01em}
+  .m-impact{margin-left:auto;font-size:12.5px;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap}
+  .m-impact b{color:var(--ink);font-size:15px}
+  .m-body{padding-left:6px}
+  .m-body .why{font-size:13.5px;color:var(--ink-2);margin:10px 0 14px}
+  .m-actions{list-style:none;padding:0;margin:0 0 14px}
+  .m-actions li{position:relative;padding:4px 0 4px 24px;font-size:14px}
+  .m-actions li::before{content:"";position:absolute;left:4px;top:12px;width:7px;height:7px;border-radius:2px;background:var(--rail,var(--accent))}
+  .m-foot{display:flex;flex-wrap:wrap;gap:8px;padding-top:12px;border-top:1px solid var(--hairline-2)}
+  .pill{font-size:11.5px;padding:3px 10px;border-radius:999px;background:var(--surface-2);color:var(--ink-2);border:1px solid var(--hairline-2)}
+  .pill b{color:var(--ink);font-weight:650}
+  .pill.kpi{background:var(--band-good);color:var(--good-ink);border-color:transparent}
+
+  /* target hotels inline bars */
+  .tgt{margin:12px 0 4px}
+  .tgt-row{display:grid;grid-template-columns:180px 1fr 44px;align-items:center;gap:10px;font-size:12.5px;margin-bottom:5px}
+  .tgt-row .tn{color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tgt-track{height:14px;background:var(--surface-2);border-radius:4px;overflow:hidden}
+  .tgt-fill{height:100%;border-radius:4px;background:var(--rail,var(--accent))}
+  .tgt-val{text-align:right;font-variant-numeric:tabular-nums;font-weight:650}
+
+  /* horizontal type chart (exec) */
+  .typechart{margin:6px 0 4px}
+  .tc-row{display:grid;grid-template-columns:96px 1fr 90px;align-items:center;gap:11px;font-size:13px;margin-bottom:7px}
+  .tc-row .tcn{color:var(--ink-2)}
+  .tc-track{height:19px;background:var(--surface-2);border-radius:5px;overflow:hidden}
+  .tc-fill{height:100%;border-radius:5px}
+  .tc-val{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink-2)}
+  .tc-val b{color:var(--ink);font-weight:700}
+
+  /* priority matrix */
+  .matrix{position:relative;background:var(--surface);border:1px solid var(--hairline);border-radius:16px;padding:20px;box-shadow:var(--shadow);margin-top:6px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th,td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--hairline-2)}
+  th{font-size:11.5px;letter-spacing:.03em;color:var(--muted);font-weight:650;text-transform:uppercase}
+  tbody tr:last-child td{border-bottom:0}
+  td .badge{font-size:11px;padding:2px 8px;border-radius:6px;font-weight:700;color:#fff}
+  .term-short{background:var(--good)} .term-mid{background:var(--warning)}
+  td.imp{font-variant-numeric:tabular-nums;font-weight:650}
+
+  .roadmap{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:6px}
+  .phase{background:var(--surface);border:1px solid var(--hairline);border-radius:14px;padding:18px 20px;box-shadow:var(--shadow)}
+  .phase h4{margin:0 0 4px;font-size:15px}
+  .phase .ph-when{font-size:12px;color:var(--accent-2);font-weight:650;margin-bottom:12px}
+  .phase ul{margin:0;padding-left:18px;font-size:13.5px}
+  .phase li{margin-bottom:6px}
+
+  .foot{padding:34px 0 0;font-size:12px;color:var(--muted)}
+  .foot p{margin:0 0 6px}
+
+  @media (max-width:720px){
+    h1{font-size:29px}.exec-stats{grid-template-columns:1fr}.roadmap{grid-template-columns:1fr}
+    .m-head{flex-wrap:wrap}.m-impact{margin-left:0;width:100%}
+    .tgt-row{grid-template-columns:130px 1fr 40px}
+  }
+</style>
+
+<div class="wrap col">
+  <header class="cover">
+    <p class="eyebrow">R8 客室清掃品質 — 改善提案レポート</p>
+    <h1>クレームと口コミ指摘を減らす、<br>件数インパクト起点の改善プラン</h1>
+    <p class="lede">稼働中の全ホテルのR8実績を分析し、「件数が多く効果の大きい課題」から優先的に手を打つための改善案をまとめました。全社共通の標準化で面を取り、上位現場に重点対策を重ねる二段構えです。</p>
+    <div class="cover-meta">
+      <span class="chip">対象：<strong>通常稼働 18ホテル</strong></span>
+      <span class="chip">集計：<strong>R8（今年）2〜7月</strong></span>
+      <span class="chip">クレーム総数：<strong>366件</strong></span>
+      <span class="chip">口コミ指摘：<strong>272件</strong></span>
+    </div>
+  </header>
+
+  <!-- Exec Summary -->
+  <section class="sec">
+    <span class="sec-num">01</span>
+    <h2>エグゼクティブサマリー</h2>
+    <h3>「3つの型」に集中投資すれば、大半の失点は防げる</h3>
+    <div class="exec-stats">
+      <div class="es"><div class="v">64<span class="u">%</span></div><div class="l">クレーム366件のうち<br><strong class="hl">セット漏れ・残置・汚れ</strong>の3種で占める割合</div></div>
+      <div class="es"><div class="v">34<span class="u">%</span></div><div class="l">口コミ指摘272件のうち<br><strong class="hl">「臭い」</strong>が占める割合（最大要因）</div></div>
+      <div class="es"><div class="v">全社改善</div><div class="l">クレーム率はほぼ全ホテルで<br><strong class="hl">前年（R7）比 改善</strong>。今は「質の底上げ」の段階</div></div>
+    </div>
+    <p>R8のクレームは <strong class="hl">セット漏れ101件（27.6%）</strong>、<strong class="hl">残置79件（21.6%）</strong>、<strong class="hl">汚れ53件（14.5%）</strong> の3種に集中しています。いずれも「手順の徹底」で防げる作業ミスであり、<span class="accent">全社共通のチェック標準化</span>が最も費用対効果の高い一手です。</p>
+    <p>一方で、お客様の口コミに現れる指摘は <strong class="hl">「臭い」91件（33.5%）</strong> が突出。これは現場のクレーム率とは連動しておらず、<span class="accent">別軸の対策</span>が必要です（詳細は04）。</p>
+    <div class="callout">
+      <div class="t">本レポートの見方</div>
+      <p>各施策には「件数インパクト（根拠）」「対象現場」「効果を測るKPI」を付けています。KPIはすべて既存のダッシュボードで追跡できる指標です。優先順位は<strong>件数インパクト</strong>を基準に①→の順で並べています。</p>
+    </div>
+  </section>
+
+  <!-- Section 2: 全社標準化 -->
+  <section class="sec">
+    <span class="sec-num">02</span>
+    <h2>全社共通の標準化施策</h2>
+    <h3>件数の多い「作業ミス3種」を手順で潰す</h3>
+    <p class="muted" style="font-size:13.5px">クレーム種別の全社集計（通常稼働18ホテル・366件）。上位3種で全体の64%を占める。</p>
+    <div class="typechart" id="claimChart"></div>
+
+    <!-- Measure 1 -->
+    <div class="measure" style="--rail:var(--p3)">
+      <div class="m-head"><span class="m-pri">① 最優先</span><span class="m-title">セット漏れ撲滅</span><span class="m-impact">全社 <b>101件</b> ・27.6%</span></div>
+      <div class="m-body">
+        <p class="why">アメニティ・タオル・水などの「置き忘れ」。人数分（W/シングル）の取り違えが典型。退室前の一手間で確実に防げる、最も費用対効果の高い対象。</p>
+        <ul class="m-actions">
+          <li>退室前の<strong>セット指差し確認</strong>（人数分×品目）をルーティン化し、日報に完了チェック欄を追加</li>
+          <li>アメニティの<strong>定位置化・員数表示</strong>（カートの区画にW/S表示、残数が一目でわかる）</li>
+          <li>チェッカーの点検項目に「員数（人数分）確認」を明記し、W対応部屋を重点確認</li>
+        </ul>
+        <div class="tgt" id="tgt-set"></div>
+        <div class="m-foot">
+          <span class="pill kpi">KPI：セット漏れ件数 / クレーム率</span>
+          <span class="pill">着手：<b>すぐ</b></span><span class="pill">コスト：<b>低</b></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Measure 2 -->
+    <div class="measure" style="--rail:var(--p1)">
+      <div class="m-head"><span class="m-pri">②</span><span class="m-title">残置ゼロ動線</span><span class="m-impact">全社 <b>79件</b> ・21.6%</span></div>
+      <div class="m-body">
+        <p class="why">前泊者の忘れ物・使用済みタオル・拭き上げタオルの置き忘れ。清掃者とチェッカーの「確認漏れ」が原因で、確認する順路を決めれば激減する。</p>
+        <ul class="m-actions">
+          <li><strong>残置チェック動線の固定</strong>：冷蔵庫 → 引き出し → 浴室 → カーテン裏 → ベッド下、の順で毎回確認</li>
+          <li>チェッカーの<strong>最終確認項目に「残置なし」を必須化</strong>（拭き上げタオルの回収漏れが多い）</li>
+          <li>発見された残置は種類を記録し、多発パターンを月次で共有</li>
+        </ul>
+        <div class="tgt" id="tgt-zan"></div>
+        <div class="m-foot">
+          <span class="pill kpi">KPI：残置件数</span>
+          <span class="pill">着手：<b>すぐ</b></span><span class="pill">コスト：<b>低</b></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Measure 3 -->
+    <div class="measure" style="--rail:var(--p2)">
+      <div class="m-head"><span class="m-pri">③</span><span class="m-title">汚れ・清掃不備の底上げ</span><span class="m-impact">全社 <b>86件</b> ・汚れ53+清掃不備33</span></div>
+      <div class="m-body">
+        <p class="why">グラス・浴槽・水回り・ベッド下など「仕上がりの質」に関わる指摘。教育と重点箇所チェックリストで底上げする。</p>
+        <ul class="m-actions">
+          <li><strong>重点箇所チェックリスト</strong>（グラス／浴槽／洗面／ベッド下／鏡）を全現場共通で運用</li>
+          <li>汚れの<strong>写真事例集</strong>（良い例・悪い例）で判断基準を統一し、新人教育に活用</li>
+          <li>清掃不備の再発は個人でなく<strong>手順・道具の問題</strong>として原因分析</li>
+        </ul>
+        <div class="m-foot">
+          <span class="pill kpi">KPI：汚れ・清掃不備件数</span>
+          <span class="pill">着手：<b>中</b></span><span class="pill">コスト：<b>中</b></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 3: 口コミ -->
+  <section class="sec">
+    <span class="sec-num">03</span>
+    <h2>口コミ（清潔感）対策</h2>
+    <h3>クレーム率が低くても、口コミでは失点している</h3>
+    <p class="muted" style="font-size:13.5px">口コミ指摘の全社集計（272件）。「臭い」が3分の1を占め、現場のクレーム率とは連動しない。</p>
+    <div class="typechart" id="kuchiChart"></div>
+
+    <!-- Measure 4 -->
+    <div class="measure" style="--rail:var(--warning)">
+      <div class="m-head"><span class="m-pri">④</span><span class="m-title">「臭い」対策</span><span class="m-impact">口コミ <b>91件</b> ・33.5%</span></div>
+      <div class="m-body">
+        <p class="why">タバコ臭・水回りの臭い・カビ臭が中心。現場の作業チェックでは「見た目」しか見ておらず、嗅覚での確認が抜けている。清潔感評価に直結する最重要テーマ。</p>
+        <ul class="m-actions">
+          <li>チェッカーの点検項目に<strong>「入室時の臭いチェック」を追加</strong>（見た目の前に、まず匂いを確認）</li>
+          <li><strong>換気・消臭の標準手順</strong>（清掃中の換気時間、消臭剤／オゾンの使用基準）を明文化</li>
+          <li>タバコ臭・水回り臭は<strong>発生源対策</strong>（排水口・エアコンフィルター・寝具）まで踏み込む</li>
+        </ul>
+        <div class="tgt" id="tgt-smell"></div>
+        <div class="m-foot">
+          <span class="pill kpi">KPI：口コミ「臭い」件数 / 清潔感指摘率</span>
+          <span class="pill">着手：<b>すぐ</b></span><span class="pill">コスト：<b>低〜中</b></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Measure 5 -->
+    <div class="measure" style="--rail:var(--p4)">
+      <div class="m-head"><span class="m-pri">⑤</span><span class="m-title">現場チェック ↔ 口コミの乖離解消</span><span class="m-impact">乖離の大きい現場を重点</span></div>
+      <div class="m-body">
+        <p class="why">クレーム率は極めて低いのに口コミ指摘率が高い現場がある。「社内基準はクリアしているが、お客様目線では不足」という状態で、チェック基準そのものの見直しが必要。</p>
+        <div class="tgt" id="tgt-gap"></div>
+        <ul class="m-actions" style="margin-top:14px">
+          <li>口コミ指摘を起点に<strong>「なぜチェックで拾えなかったか」を逆算</strong>し、点検基準に反映</li>
+          <li>口コミ指摘率の高い現場を月次でレビューし、社内チェック項目を現場ごとに補強</li>
+        </ul>
+        <div class="m-foot">
+          <span class="pill kpi">KPI：クレーム率と口コミ指摘率のギャップ</span>
+          <span class="pill">着手：<b>中</b></span><span class="pill">コスト：<b>低</b></span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Section 4: 現場別 -->
+  <section class="sec">
+    <span class="sec-num">04</span>
+    <h2>現場別 重点対策</h2>
+    <h3>クレーム率ワースト現場は、原因種別に合わせて手当てする</h3>
+    <p>全社施策に加え、クレーム率の高い現場は原因となっている種別が異なります。現場ごとに「何が一番の失点か」を見て、上記①〜③の中から重点を選びます。</p>
+    <div class="matrix">
+      <table>
+        <thead><tr><th>現場</th><th>区分</th><th>クレーム率</th><th>主な原因種別</th><th>重点施策</th></tr></thead>
+        <tbody id="worstTable"></tbody>
+      </table>
+    </div>
+    <p class="muted" style="font-size:12.5px;margin-top:12px">※ クレーム率は前年比では改善傾向。ここでの「ワースト」は現時点の相対順位であり、現場を責める趣旨ではありません。</p>
+  </section>
+
+  <!-- Section 5: 担当マネジメント -->
+  <section class="sec">
+    <span class="sec-num">05</span>
+    <h2>担当マネジメント（教育・支援）</h2>
+    <h3>クレームの偏りは「個人の責任」ではなく「育成と配置の機会」</h3>
+    <p>一部の現場では、クレームが特定の担当者に集中する傾向があります。これは評価・懲罰の材料ではなく、<strong class="hl">負荷の偏り・担当室数の多さ・教育機会</strong>を把握するための指標として扱います。件数が多い担当ほど「担当室数も多い」ケースが大半です。</p>
+    <div class="tgt" id="tgt-conc" style="margin-top:14px"></div>
+    <ul class="m-actions" style="margin-top:16px">
+      <li>件数上位の担当には<strong>個別フィードバック面談</strong>（責める場でなく、つまずきを一緒に洗い出す）</li>
+      <li>多発している種別に絞った<strong>ピンポイント再教育</strong>（全般研修より効果的）</li>
+      <li>新人とベテランの<strong>ペア編成・チェッカー配置</strong>を見直し、負荷とスキルを平準化</li>
+    </ul>
+    <div class="m-foot" style="border:0;padding-top:4px">
+      <span class="pill kpi">KPI：担当別クレーム件数（担当室数あたり）</span>
+    </div>
+  </section>
+
+  <!-- Section 6: ロードマップ -->
+  <section class="sec">
+    <span class="sec-num">06</span>
+    <h2>実行ロードマップ</h2>
+    <h3>「すぐ効く・低コスト」から着手する</h3>
+    <div class="matrix" style="margin-bottom:22px">
+      <table>
+        <thead><tr><th>優先</th><th>施策</th><th>件数インパクト</th><th>着手</th></tr></thead>
+        <tbody>
+          <tr><td><b>①</b></td><td>セット漏れ撲滅</td><td class="imp">101件</td><td><span class="badge term-short">短期</span></td></tr>
+          <tr><td><b>②</b></td><td>残置ゼロ動線</td><td class="imp">79件</td><td><span class="badge term-short">短期</span></td></tr>
+          <tr><td><b>④</b></td><td>「臭い」対策</td><td class="imp">口コミ91件</td><td><span class="badge term-short">短期</span></td></tr>
+          <tr><td><b>③</b></td><td>汚れ・清掃不備の底上げ</td><td class="imp">86件</td><td><span class="badge term-mid">中期</span></td></tr>
+          <tr><td><b>⑤</b></td><td>チェック↔口コミ乖離の解消</td><td class="imp">乖離現場</td><td><span class="badge term-mid">中期</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="roadmap">
+      <div class="phase">
+        <h4>短期（すぐ〜1〜2か月）</h4>
+        <div class="ph-when">低コスト・高インパクト／標準化と習慣づけ</div>
+        <ul>
+          <li>セット指差し確認・残置チェック動線を全現場で運用開始</li>
+          <li>日報・点検項目に「員数確認」「残置なし」「臭いチェック」を追加</li>
+          <li>臭い多発の上位現場（ハートン・ERA・浜松町・博多）で消臭手順を先行導入</li>
+        </ul>
+      </div>
+      <div class="phase">
+        <h4>中期（3〜6か月）</h4>
+        <div class="ph-when">質の底上げと個別最適化</div>
+        <ul>
+          <li>重点箇所チェックリスト・写真事例集で仕上がり基準を統一</li>
+          <li>口コミ指摘率の高い現場のチェック基準を個別に見直し</li>
+          <li>担当別のピンポイント再教育・ペア編成の見直し</li>
+          <li>ダッシュボードで施策前後のKPI推移をレビュー</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <div class="foot">
+    <p>※ 出典：各ホテル R8_集計表「R8品質データまとめ」シート（R8年度・2〜7月）。件数は通常稼働18ホテルの合算。</p>
+    <p>※ 立ち上げ中・データ未整備の現場（スタープラザ池袋・コート新横浜等）は、集計運用の定着と標準手順の初期展開を優先し、上記施策を順次適用します。</p>
+    <p>※ 担当者名を含む分析は、教育・支援・負荷平準化を目的とし、評価や懲罰を意図するものではありません。</p>
+  </div>
+</div>
+
+<script>
+const INS={"claimAgg":[["セット漏れ",101],["残置",79],["汚れ",53],["その他",34],["清掃不備",33],["髪の毛",20],["手配ミス",15],["巻き込み",9],["誤入室",5],["未清掃",5],["私物破棄",5],["ドア閉め忘れ",4],["破損",3]],"kuchiAgg":[["臭い",91],["汚れ",50],["清掃不備",43],["ホコリ",30],["髪の毛",24],["その他",13],["カビ",13],["残置",6],["手配ミス",1],["害虫",1]],"claimTotal":366,"kuchiTotal":272,"claimTop":{"セット漏れ":[["アパホテル蒲田駅東",15],["京成リッチモンドホテル東京錦糸町",13],["川崎日航ホテル",13],["ダイワロイネットホテル東京大崎",12]],"残置":[["ハートンホテル東品川",15],["コンフォートスイーツ東京ベイ",10],["ダイワロイネットホテル東京大崎",8],["京成リッチモンドホテル東京錦糸町",6]],"汚れ":[["コンフォートスイーツ東京ベイ",11],["コンフォートホテル博多",11],["第一イン池袋",6],["変なホテル東京羽田",4]],"清掃不備":[["ハートンホテル東品川",13],["京成リッチモンドホテル東京錦糸町",5],["川崎日航ホテル",4],["変なホテル東京羽田",4]]},"kuchiTop":{"臭い":[["ハートンホテル東品川",17],["コンフォートホテルERA東京東神田",11],["チサンホテル浜松町",8],["コンフォートホテル博多",7]],"汚れ":[["コンフォートホテル博多",12],["リッチモンドホテル東京目白",8],["変なホテル東京羽田",5],["第一イン池袋",4]],"清掃不備":[["コンフォートホテル博多",7],["ホテルケヤキゲート東京府中",5],["リッチモンドホテル東京目白",5],["変なホテル東京羽田",5]],"ホコリ":[["コンフォートホテル博多",8],["京成リッチモンドホテル東京錦糸町",6],["リッチモンドホテル東京目白",4],["チサンホテル浜松町",2]]},"rateWorst":[["川崎日航ホテル","P3",0.137,34,[["セット漏れ",13],["その他",5]]],["京成リッチモンドホテル東京錦糸町","P1",0.134,34,[["セット漏れ",13],["残置",6]]],["第一イン池袋","P1",0.113,19,[["汚れ",6],["手配ミス",4]]],["アパホテル相模原橋本駅東","P3",0.11,20,[["セット漏れ",7],["残置",6]]],["ダイワロイネットホテル東京大崎","P1",0.106,22,[["セット漏れ",12],["残置",8]]],["コンフォートホテル博多","P4",0.09,33,[["汚れ",11],["セット漏れ",7]]]],"kuchiWorst":[["チサンホテル浜松町","P1",8.99,20,[["臭い",8],["清掃不備",4]]],["コンフォートホテル博多","P4",7.42,40,[["汚れ",12],["ホコリ",8]]],["リッチモンドホテル東京目白","P1",7.12,31,[["汚れ",8],["清掃不備",5]]],["アパホテル蒲田駅東","P3",4.49,6,[["臭い",2],["ホコリ",2]]],["ホテルケヤキゲート東京府中","P1",4.1,11,[["清掃不備",5],["臭い",3]]],["コンフォートイン六本木","P2",3.64,11,[["臭い",6],["清掃不備",2]]]],"gap":[["チサンホテル浜松町",0.005,8.99,8.94],["リッチモンドホテル東京目白",0.017,7.12,6.95],["コンフォートホテル博多",0.09,7.42,6.52],["アパホテル蒲田駅東",0.077,4.49,3.72],["ホテルケヤキゲート東京府中",0.052,4.1,3.5799999999999996]],"conc":[["川崎日航ホテル","チェッカー","藤田",14,34],["川崎日航ホテル","メイド","インドラ",13,34],["ハートンホテル東品川","チェッカー","ラディカ",10,54],["ダイワロイネットホテル東京大崎","チェッカー","チャン",9,22],["京成リッチモンドホテル東京錦糸町","チェッカー","メイ",7,34],["ハートンホテル東品川","メイド","サンティ",6,54]],"nActive":18};
+
+const cssv=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const NF=new Intl.NumberFormat("ja-JP");
+const trunc=(s,n)=>s.length>n?s.slice(0,n-1)+"…":s;
+
+// exec type charts
+function typeChart(id, rows, total, colorVar){
+  const max=Math.max(...rows.map(r=>r[1]));
+  const el=document.getElementById(id);if(!el)return;
+  el.innerHTML=rows.map(([n,c])=>`
+    <div class="tc-row">
+      <span class="tcn">${n}</span>
+      <span class="tc-track"><span class="tc-fill" style="width:${c/max*100}%;background:${cssv(colorVar)}"></span></span>
+      <span class="tc-val"><b>${c}</b>件 ・${(c/total*100).toFixed(0)}%</span>
+    </div>`).join("");
+}
+typeChart("claimChart", INS.claimAgg.slice(0,8), INS.claimTotal, "--accent-2");
+typeChart("kuchiChart", INS.kuchiAgg.slice(0,8), INS.kuchiTotal, "--warning");
+
+// target hotel bars
+function tgtBars(id, rows, unit){
+  const el=document.getElementById(id);if(!el)return;
+  const max=Math.max(...rows.map(r=>r[1]));
+  el.innerHTML=`<div style="font-size:12px;color:var(--muted);margin-bottom:6px">主な対象現場（件数上位）</div>`+
+    rows.map(([nm,c])=>`
+    <div class="tgt-row">
+      <span class="tn">${trunc(nm,12)}</span>
+      <span class="tgt-track"><span class="tgt-fill" style="width:${c/max*100}%"></span></span>
+      <span class="tgt-val">${c}${unit}</span>
+    </div>`).join("");
+}
+tgtBars("tgt-set", INS.claimTop["セット漏れ"], "件");
+tgtBars("tgt-zan", INS.claimTop["残置"], "件");
+tgtBars("tgt-smell", INS.kuchiTop["臭い"], "件");
+
+// gap bars (kuchiRate vs claimRate*10 index) — show kuchiRate
+(function(){
+  const el=document.getElementById("tgt-gap");if(!el)return;
+  const rows=INS.gap.map(g=>[g[0],g[2],g[1]]); // name, kuchiRate, claimRate
+  const max=Math.max(...rows.map(r=>r[1]));
+  el.innerHTML=`<div style="font-size:12px;color:var(--muted);margin-bottom:6px">乖離の大きい現場（口コミ指摘率が高いのにクレーム率は低い）</div>`+
+    rows.map(([nm,kr,cr])=>`
+    <div class="tgt-row" style="grid-template-columns:170px 1fr 130px">
+      <span class="tn">${trunc(nm,11)}</span>
+      <span class="tgt-track"><span class="tgt-fill" style="width:${kr/max*100}%;background:var(--p4)"></span></span>
+      <span class="tgt-val" style="font-size:11.5px">口コミ${kr.toFixed(1)}% / ｸﾚｰﾑ${cr.toFixed(3)}%</span>
+    </div>`).join("");
+})();
+
+// concentration bars
+(function(){
+  const el=document.getElementById("tgt-conc");if(!el)return;
+  const rows=INS.conc; // name, role, who, count, hotelClaims
+  const max=Math.max(...rows.map(r=>r[3]));
+  el.innerHTML=`<div style="font-size:12px;color:var(--muted);margin-bottom:6px">担当別クレーム件数が集中している例（現場内の最多担当）</div>`+
+    rows.map(([nm,role,who,c,tot])=>`
+    <div class="tgt-row" style="grid-template-columns:210px 1fr 96px">
+      <span class="tn">${trunc(nm,11)}・${role}</span>
+      <span class="tgt-track"><span class="tgt-fill" style="width:${c/max*100}%;background:var(--accent-2)"></span></span>
+      <span class="tgt-val" style="font-size:11.5px">${who} ${c}件</span>
+    </div>`).join("");
+})();
+
+// worst table
+(function(){
+  const tb=document.getElementById("worstTable");if(!tb)return;
+  const rec={"セット漏れ":"① セット漏れ徹底","残置":"② 残置動線","汚れ":"③ 仕上げ底上げ","清掃不備":"③ 仕上げ底上げ","手配ミス":"手配フロー見直し","その他":"個別分析"};
+  tb.innerHTML=INS.rateWorst.map(([nm,pxx,rate,claims,types])=>{
+    const t1=types[0]?types[0][0]:"—";
+    const t2=types[1]?types[1][0]:null;
+    const typesTxt=types.map(t=>`${t[0]}${t[1]}`).join(" / ");
+    const focus=rec[t1]||"個別分析";
+    const rateColor=rate>=0.12?"var(--crit-ink)":rate>=0.08?"var(--warn-ink)":"var(--good-ink)";
+    return `<tr>
+      <td><b>${nm}</b></td>
+      <td>${pxx}</td>
+      <td style="color:${rateColor};font-weight:700;font-variant-numeric:tabular-nums">${rate.toFixed(3)}%</td>
+      <td style="color:var(--ink-2);font-size:12.5px">${typesTxt}</td>
+      <td style="font-size:12.5px">${focus}</td>
+    </tr>`;
+  }).join("");
+})();
+</script>
+
+</body>
+</html>
